@@ -1,5 +1,4 @@
 import React from 'react';
-import API_URL from '../../api';
 
 interface LogoProps {
   className?: string;
@@ -18,7 +17,7 @@ export default function Logo({ className = '', size = 52, tinted = false }: Logo
         setCustomLogo(stored);
       } else {
         // Also check if custom settings with custom logo exits
-        fetch(`${API_URL}/api/settings`)
+        fetch('/api/settings')
           .then(res => res.json())
           .then(data => {
             if (data && data.logoUrl) {

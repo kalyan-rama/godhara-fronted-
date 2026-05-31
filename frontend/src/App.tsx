@@ -5,7 +5,7 @@ import { Product } from './types';
 import API_URL from './api';
 
 // Layout Elements
-
+import AnnouncementBar from './components/layout/AnnouncementBar';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 

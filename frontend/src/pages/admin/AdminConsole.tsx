@@ -122,7 +122,7 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
   const [labelsViewMode, setLabelsViewMode] = useState<'grid' | 'table'>('grid');
   
   // Custom brand states
-  const [logoUrl, setLogoUrl] = useState('/assets/logo.png');
+  const [logoUrl, setLogoUrl] = useState('/logo.png');
   const [founderImageUrl, setFounderImageUrl] = useState('');
   const [founderName, setFounderName] = useState('Kalyan V., Founder of Godhara');
   const [founderQuote, setFounderQuote] = useState('');
@@ -382,7 +382,7 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
         setLowStockAlertLimit(sets.lowStockThreshold || 10);
         
         // Brand identity fields
-        setLogoUrl(sets.logoUrl || '/assets/logo.png');
+        setLogoUrl(sets.logoUrl || '/logo.png');
         setFounderImageUrl(sets.founderImageUrl || '');
         setFounderName(sets.founderName || 'Kalyan V., Founder of Godhara');
         setFounderQuote(sets.founderQuote || '');

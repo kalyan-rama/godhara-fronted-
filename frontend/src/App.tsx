@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { Product } from './types';
 import API_URL from './api';
@@ -24,6 +24,7 @@ import AdminConsole from './pages/admin/AdminConsole';
 import MobileTabNavigation from './components/layout/MobileTabNavigation';
 
 function StorefrontApp() {
+  const { isAdmin } = useAuth();
   const [currentView, setView] = useState<string>('home');
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -153,6 +154,9 @@ function StorefrontApp() {
               case 'register':
                 return <Register setView={setView} />;
               case 'admin':
+                if (!isAdmin) {
+                  return <Login setView={setView} />;
+                }
                 return (
                   <AdminConsole 
                     setView={setView} 

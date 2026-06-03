@@ -112,7 +112,7 @@ export default function Footer({ setView, setCategory }: FooterProps) {
 
         </div>
 
-// BOTTOM SECTION - PAYMENT RECURRENCES & CREDIT
+        {/* BOTTOM SECTION - PAYMENT RECURRENCES & CREDIT */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-6">
           
           {/* Payment gateway icons */}
@@ -197,7 +197,7 @@ export default function Footer({ setView, setCategory }: FooterProps) {
                   strokeWidth="2.5" 
                   strokeLinecap="round" 
                   strokeLinejoin="round"
-                  xmlns="http://www.w3.org/2000/svg"
+                  xmlns="http://www.w3.org/2005/svg"
                   title="Net Banking"
                 >
                   <path d="M3 21h18M21 21v-8M21 10h-2M3 21v-8M3 10h2M5 21v-8M9 21v-8M13 21v-8M17 21v-8M10 21h4M2 10L12 3l10 7" />

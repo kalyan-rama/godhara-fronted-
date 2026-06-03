@@ -155,7 +155,7 @@ export default function Cart({ setView }: CartProps) {
                 Order Invoice Summary
               </h3>
 
-              <div className="flex flex-col gap-3 font-sans text-xs text-[#2C1810]/80">
+              <div className="flex flex-col gap-3 font-sans text-xs text-[#2C1810]/80 font-medium">
                 <div className="flex items-center justify-between">
                   <span>Cart Items Count:</span>
                   <span className="font-bold text-stone-700">{cartCount} items</span>

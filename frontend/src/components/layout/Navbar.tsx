@@ -12,6 +12,11 @@ interface NavbarProps {
 
 export default function Navbar({ currentView, setView, onSearch }: NavbarProps) {
   const { user, isAuthenticated, logout, isAdmin } = useAuth();
+
+  React.useEffect(() => {
+    console.log('[DEBUG Navigation Rendering] Navbar user state:', user ? { id: user.id, email: user.email, role: user.role, otpVerified: user.otpVerified } : 'null', 'isAdmin:', isAdmin);
+  }, [user, isAdmin]);
+
   const { cartCount } = useCart();
   const [searchVal, setSearchVal] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);

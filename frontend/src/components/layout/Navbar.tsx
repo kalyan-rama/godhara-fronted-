@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Logo from './Logo';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
-import { ShoppingCart, Search, User, LogOut, ChevronDown, LayoutDashboard, Menu, X, PhoneCall, Gift, BookOpen } from 'lucide-react';
+import { ShoppingCart, Search, User, LogOut, ChevronDown, LayoutDashboard, Menu, X, PhoneCall, Gift, BookOpen, AlertCircle } from 'lucide-react';
 
 interface NavbarProps {
   currentView: string;
@@ -11,12 +11,7 @@ interface NavbarProps {
 }
 
 export default function Navbar({ currentView, setView, onSearch }: NavbarProps) {
-  const { user, isAuthenticated, logout, isAdmin } = useAuth();
-
-  React.useEffect(() => {
-    console.log('[DEBUG Navigation Rendering] Navbar user state:', user ? { id: user.id, email: user.email, role: user.role, otpVerified: user.otpVerified } : 'null', 'isAdmin:', isAdmin);
-  }, [user, isAdmin]);
-
+  const { user, isAuthenticated, logout } = useAuth();
   const { cartCount } = useCart();
   const [searchVal, setSearchVal] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -77,7 +72,7 @@ export default function Navbar({ currentView, setView, onSearch }: NavbarProps) 
           {/* Central Section - Desktop Navigation Links */}
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium tracking-wide">
             <button
-               onClick={() => handleLinkClick('home')}
+              onClick={() => handleLinkClick('home')}
               className={`hover:text-[#E8820C] transition-colors py-1 border-b-2 ${
                 currentView === 'home' ? 'text-[#E8820C] border-[#E8820C]' : 'border-transparent text-gray-200'
               }`}
@@ -180,7 +175,7 @@ export default function Navbar({ currentView, setView, onSearch }: NavbarProps) 
                         <p className="text-xs font-semibold truncate text-[#2C1810]">{user?.email}</p>
                       </div>
 
-                      {isAdmin && (
+                      {user && ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'VIEWER'].includes(user.role) && (
                         <button
                           onClick={() => {
                             setDropdownOpen(false);
@@ -377,7 +372,7 @@ export default function Navbar({ currentView, setView, onSearch }: NavbarProps) 
                       </div>
                     </div>
 
-                    {isAdmin && (
+                    {user && ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'VIEWER'].includes(user.role) && (
                       <button
                         onClick={() => handleLinkClick('admin')}
                         className="text-left text-xs font-extrabold text-amber-800 flex items-center gap-2 hover:bg-[#E8820C]/5 py-2 px-2.5 rounded-lg w-full"

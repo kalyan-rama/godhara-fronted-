@@ -11,7 +11,7 @@ interface NavbarProps {
 }
 
 export default function Navbar({ currentView, setView, onSearch }: NavbarProps) {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, isAdmin } = useAuth();
   const { cartCount } = useCart();
   const [searchVal, setSearchVal] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -175,7 +175,7 @@ export default function Navbar({ currentView, setView, onSearch }: NavbarProps) 
                         <p className="text-xs font-semibold truncate text-[#2C1810]">{user?.email}</p>
                       </div>
 
-                      {user?.role === 'ADMIN' && (
+                      {isAdmin && (
                         <button
                           onClick={() => {
                             setDropdownOpen(false);
@@ -372,7 +372,7 @@ export default function Navbar({ currentView, setView, onSearch }: NavbarProps) 
                       </div>
                     </div>
 
-                    {user?.role === 'ADMIN' && (
+                    {isAdmin && (
                       <button
                         onClick={() => handleLinkClick('admin')}
                         className="text-left text-xs font-extrabold text-amber-800 flex items-center gap-2 hover:bg-[#E8820C]/5 py-2 px-2.5 rounded-lg w-full"

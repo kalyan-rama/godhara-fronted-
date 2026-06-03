@@ -191,3 +191,4 @@ export default function ProductDetail({ product, setView }: ProductDetailProps) 
     </div>
   );
 }
+

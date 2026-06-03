@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Logo from './Logo';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
-import { ShoppingCart, Search, User, LogOut, ChevronDown, LayoutDashboard, Menu, X, PhoneCall, Gift, BookOpen, AlertCircle } from 'lucide-react';
+import { ShoppingCart, Search, User, LogOut, ChevronDown, LayoutDashboard, Menu, X, PhoneCall, Gift, BookOpen } from 'lucide-react';
 
 interface NavbarProps {
   currentView: string;
@@ -72,7 +72,7 @@ export default function Navbar({ currentView, setView, onSearch }: NavbarProps) 
           {/* Central Section - Desktop Navigation Links */}
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium tracking-wide">
             <button
-              onClick={() => handleLinkClick('home')}
+               onClick={() => handleLinkClick('home')}
               className={`hover:text-[#E8820C] transition-colors py-1 border-b-2 ${
                 currentView === 'home' ? 'text-[#E8820C] border-[#E8820C]' : 'border-transparent text-gray-200'
               }`}

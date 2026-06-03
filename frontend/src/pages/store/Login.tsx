@@ -61,6 +61,14 @@ export default function Login({ setView }: LoginProps) {
         setInfoVal('Secure parameters detected. Specify your fresh credentials below to complete restoration.');
       }
     }
+
+    const requiresOtp = params.get('requiresOtp');
+    const paramEmail = params.get('email');
+    if (requiresOtp === 'true' && paramEmail) {
+      setEmail(paramEmail);
+      setMode('OTP_CHALLENGE');
+      setInfoVal('🛡️ Multi-Factor OTP Verification required for administrator accounts. A secure single-use passcode has been sent to your registered email.');
+    }
   }, []);
 
   const handleEmailVerification = async (tok: string) => {
@@ -770,4 +778,3 @@ export default function Login({ setView }: LoginProps) {
     </div>
   );
 }
-

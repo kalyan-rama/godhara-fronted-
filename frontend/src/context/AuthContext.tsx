@@ -23,6 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    // Attempt local auto-authentication
     const storedUser = localStorage.getItem('gdh_user');
     const storedToken = localStorage.getItem('gdh_token');
 
@@ -35,48 +36,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('gdh_token');
       }
     }
-
     setIsLoading(false);
   }, []);
 
   const login = async (email: string, password: string) => {
     const res = await fetch(`${API_URL}/api/auth/login`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
       credentials: 'include',
     });
 
     const data = await res.json();
-
     if (!res.ok) {
       throw new Error(data.message || 'Login credentials invalid');
     }
 
     setUser(data.user);
     setToken(data.accessToken);
-
     localStorage.setItem('gdh_user', JSON.stringify(data.user));
     localStorage.setItem('gdh_token', data.accessToken);
     localStorage.setItem('gdh_refresh_token', data.refreshToken);
-
     return data.user;
   };
 
   const register = async (userData: any) => {
     const res = await fetch(`${API_URL}/api/auth/register`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(userData),
       credentials: 'include',
     });
 
     const data = await res.json();
-
     if (!res.ok) {
       throw new Error(data.message || 'Registration details unacceptable');
     }
@@ -85,103 +77,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     setUser(null);
     setToken(null);
-
     localStorage.removeItem('gdh_user');
     localStorage.removeItem('gdh_token');
     localStorage.removeItem('gdh_refresh_token');
   };
 
-  const googleLogin = (
-    accessToken: string,
-    refreshToken: string,
-    user: User
-  ) => {
+  const googleLogin = (accessToken: string, refreshToken: string, user: User) => {
     setUser(user);
     setToken(accessToken);
-
     localStorage.setItem('gdh_user', JSON.stringify(user));
     localStorage.setItem('gdh_token', accessToken);
     localStorage.setItem('gdh_refresh_token', refreshToken);
   };
 
-  const apiFetch = async (
-    url: string,
-    options: RequestInit = {}
-  ): Promise<Response> => {
-    const targetUrl = url.startsWith('/')
-      ? `${API_URL}${url}`
-      : url;
-
+  // Wrapped fetch that automatically handles Authorization headers and refreshes if needed
+  const apiFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
+    const targetUrl = url.startsWith('/') ? `${API_URL}${url}` : url;
     const headers = new Headers(options.headers || {});
-    let activeToken = token || localStorage.getItem('gdh_token');
+    const activeToken = token || localStorage.getItem('gdh_token');
 
     if (activeToken) {
       headers.set('Authorization', `Bearer ${activeToken}`);
     }
 
-    let response = await fetch(targetUrl, {
+    const mergedOptions: RequestInit = {
       credentials: 'include',
       ...options,
       headers,
-    });
+    };
 
-    // Refresh token if access token expired
-    if (
-      (response.status === 401 || response.status === 403) &&
-      localStorage.getItem('gdh_refresh_token')
-    ) {
+    let res = await fetch(targetUrl, mergedOptions);
+
+    if (res.status === 401 && localStorage.getItem('gdh_refresh_token')) {
+      // Automatic access token renewal loop
       try {
-        const refreshResponse = await fetch(
-          `${API_URL}/api/auth/refresh-token`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-              refreshToken: localStorage.getItem('gdh_refresh_token'),
-            }),
-          }
-        );
+        const refreshRes = await fetch(`${API_URL}/api/auth/refresh-token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: localStorage.getItem('gdh_refresh_token') }),
+          credentials: 'include',
+        });
 
-        if (refreshResponse.ok) {
-          const refreshData = await refreshResponse.json();
-
+        if (refreshRes.ok) {
+          const refreshData = await refreshRes.json();
           setToken(refreshData.accessToken);
-
-          localStorage.setItem(
-            'gdh_token',
-            refreshData.accessToken
-          );
-
-          if (refreshData.refreshToken) {
-            localStorage.setItem(
-              'gdh_refresh_token',
-              refreshData.refreshToken
-            );
-          }
-
-          headers.set(
-            'Authorization',
-            `Bearer ${refreshData.accessToken}`
-          );
-
-          response = await fetch(targetUrl, {
-            credentials: 'include',
-            ...options,
-            headers,
-          });
+          localStorage.setItem('gdh_token', refreshData.accessToken);
+          headers.set('Authorization', `Bearer ${refreshData.accessToken}`);
+          
+          res = await fetch(targetUrl, { credentials: 'include', ...options, headers });
         } else {
           logout();
         }
-      } catch (error) {
-        console.error('Token refresh failed:', error);
+      } catch (err) {
         logout();
       }
     }
 
-    return response;
+    return res;
   };
 
   return (
@@ -190,11 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         token,
         isAuthenticated: !!user,
-        isAdmin:
-          !!user &&
-          ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'VIEWER'].includes(
-            user.role
-          ),
+        isAdmin: !!user && ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'VIEWER'].includes(user.role) && !!user.otpVerified,
         isLoading,
         login,
         register,
@@ -210,12 +158,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-
   if (!context) {
-    throw new Error(
-      'useAuth must be called inside a AuthProvider wrapper'
-    );
+    throw new Error('useAuth must be called inside an AuthProvider wrapper');
   }
-
   return context;
 }

@@ -154,17 +154,16 @@ export default function Login({ setView }: LoginProps) {
 
       const handleMessage = (event: MessageEvent) => {
         if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
-          const { accessToken, refreshToken, user: authUser } = event.data;
+          const { accessToken, refreshToken, user: authUser, requiresOtp } = event.data;
           
-          googleLogin(accessToken, refreshToken, authUser);
-          setInfoVal(`🙏 Welcome, ${authUser.name}! Successfully signed in via Google.`);
-          
-          const isAdminRole = ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'VIEWER'].includes(authUser.role);
-          if (isAdminRole) {
-            setAuthTempUser({ accessToken, refreshToken, user: authUser });
+          if (requiresOtp) {
+            setAuthTempUser({ accessToken: null, refreshToken: null, user: authUser });
+            setEmail(authUser.email);
             setMode('OTP_CHALLENGE');
             setInfoVal('🛡️ Multi-Factor OTP Verification required for administrator accounts. A secure single-use passcode has been sent to your registered email.');
           } else {
+            googleLogin(accessToken, refreshToken, authUser);
+            setInfoVal(`🙏 Welcome, ${authUser.name}! Successfully signed in via Google.`);
             setTimeout(() => {
               setView('home');
               setTimeout(() => {
@@ -771,4 +770,3 @@ export default function Login({ setView }: LoginProps) {
     </div>
   );
 }
-

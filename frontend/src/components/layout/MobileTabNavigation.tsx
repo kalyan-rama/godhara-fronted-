@@ -9,7 +9,7 @@ interface MobileTabNavigationProps {
 }
 
 export default function MobileTabNavigation({ currentView, setView }: MobileTabNavigationProps) {
-  const { isAuthenticated, user, isAdmin } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { cartCount } = useCart();
 
   const handleTabClick = (view: string) => {
@@ -132,7 +132,7 @@ export default function MobileTabNavigation({ currentView, setView }: MobileTabN
         </button>
 
         {/* Tab 5: Admin Panel (if applicable) or a special "Organic Care" Vedic info tab */}
-        {isAuthenticated && isAdmin ? (
+        {isAuthenticated && user && ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'VIEWER'].includes(user.role) ? (
           <button
             onClick={() => handleTabClick('admin')}
             className="flex flex-col items-center justify-center gap-1 w-full h-full text-center focus:outline-none cursor-pointer text-amber-500 animate-pulse"

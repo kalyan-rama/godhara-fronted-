@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 import { ShoppingBag, Trash2, ArrowRight, ShieldAlert, Truck } from 'lucide-react';
+import API_URL from '../../api';
 
 interface CartProps {
   setView: (v: string) => void;
@@ -8,8 +10,45 @@ interface CartProps {
 
 export default function Cart({ setView }: CartProps) {
   const { cart, cartSubtotal, cartCount, cartWeight, updateCartQty, removeFromCart } = useCart();
-  const freeThreshold = 1000;
-  const deliveryCharge = cartSubtotal >= freeThreshold ? 0 : 100;
+  const { user } = useAuth();
+
+  const [freeThreshold, setFreeThreshold] = useState(1000);
+  const [deliveryCharge, setDeliveryCharge] = useState(100);
+
+  useEffect(() => {
+    // Load base delivery settings
+    fetch(`${API_URL}/api/settings`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          if (data.freeShippingThreshold !== undefined) setFreeThreshold(data.freeShippingThreshold);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Recalculate delivery when cart, user address or threshold changes
+  useEffect(() => {
+    const pincode = user?.address?.pincode || '';
+    const state = user?.address?.state || 'Telangana';
+
+    if (cartSubtotal >= freeThreshold) {
+      setDeliveryCharge(0);
+      return;
+    }
+
+    fetch(`${API_URL}/api/delivery/calculate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pincode, state })
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) setDeliveryCharge(data.deliveryCharge);
+      })
+      .catch(() => {});
+  }, [cartSubtotal, freeThreshold, user]);
+
   const grandTotal = cartSubtotal + deliveryCharge;
 
   const handleCheckoutNav = () => {
@@ -133,7 +172,7 @@ export default function Cart({ setView }: CartProps) {
                     <>
                       <h4 className="text-xs font-bold text-amber-800 uppercase tracking-wider">Free Shipping Progress Bar</h4>
                       <p className="text-[11px] text-stone-500 mt-1 leading-snug">
-                        Add <span className="font-bold text-[#6B2D0E]">₹{(freeThreshold - cartSubtotal).toLocaleString()}</span> more to your cart to bypass standard ₹100 delivery!
+                        Add <span className="font-bold text-[#6B2D0E]">₹{(freeThreshold - cartSubtotal).toLocaleString()}</span> more to your cart to unlock free delivery!
                       </p>
                       
                       {/* Percent Slider indicator */}

@@ -68,6 +68,7 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
   const [prodCategory, setProdCategory] = useState('Dairy Products');
   const [prodWeight, setProdWeight] = useState('250');
   const [prodImages, setProdImages] = useState<string[]>([]);
+  const [prodImagePublicIds, setProdImagePublicIds] = useState<string[]>([]);
   const [prodTags, setProdTags] = useState('');
   const [prodFeatured, setProdFeatured] = useState(false);
   const [prodActive, setProdActive] = useState(true);
@@ -181,6 +182,7 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
     
     let processedCount = 0;
     const newServerUrls: string[] = [];
+    const newPublicIds: string[] = [];
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -247,10 +249,14 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
         }
 
         const uploadData = await uploadRes.json();
-        const serverUrl = uploadData.url;
-        console.log('[Image Upload] Image stored successfully in server static directory:', serverUrl);
+        const serverUrl = uploadData.url || uploadData.imageUrl;
+        const publicId = uploadData.publicId || null;
+        console.log('[Image Upload] Stored to Cloudinary:', serverUrl, 'publicId:', publicId);
 
         newServerUrls.push(serverUrl);
+        if (publicId) {
+          newPublicIds.push(publicId);
+        }
 
         // Save image metadata/URL locally in localStorage configuration catalog
         try {
@@ -283,9 +289,12 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
 
     if (newServerUrls.length > 0) {
       setProdImages(prev => [...prev, ...newServerUrls]);
-      triggerNotification(`✓ Successfully uploaded & stored ${processedCount} persistent images on the server!`);
+      if (newPublicIds.length > 0) {
+        setProdImagePublicIds(prev => [...prev, ...newPublicIds]);
+      }
+      triggerNotification(`✓ Successfully uploaded ${processedCount} image(s) to Cloudinary!`);
     } else {
-      triggerNotification('No images processed', 'error');
+      triggerNotification('No images processed successfully', 'error');
     }
     setIsUploadingImage(false);
   };
@@ -425,7 +434,8 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
     setProdStock('');
     setProdCategory('Dairy Products');
     setProdWeight('250');
-    setProdImages(['https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&q=80&w=600']);
+    setProdImages([]);
+    setProdImagePublicIds([]);
     setProdTags('natural, pure, ayurvedic, desi gau');
     setProdFeatured(false);
     setProdActive(true);
@@ -443,7 +453,8 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
     setProdCategory(p.category);
     setProdWeight(p.weight.toString());
     setProdImages(p.images || []);
-    setProdTags(p.id /* metadata or tags placeholder string */ ? 'ayurvedic, organic, traditional' : '');
+    setProdImagePublicIds((p as any).imagePublicIds || []);
+    setProdTags('ayurvedic, organic, traditional');
     setProdFeatured(p.isFeatured);
     setProdActive(p.isActive !== false);
     setShowProductModal(true);
@@ -471,6 +482,7 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
       category: prodCategory,
       weight: parseInt(prodWeight),
       images: prodImages,
+      imagePublicIds: prodImagePublicIds,
       isFeatured: prodFeatured,
       isActive: prodActive
     };
@@ -493,6 +505,7 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
 
       if (res.ok) {
         setShowProductModal(false);
+        setProdImagePublicIds([]);
         refreshProducts();
         triggerNotification(editingProduct ? '✓ Product updated inside traditional logs!' : '✓ Sacred product entry logged successfully!');
       } else {
@@ -1325,19 +1338,19 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 font-sans">
               <div className="bg-white border border-[#D4B896]/50 rounded-xl p-5 shadow-sm">
                 <p className="text-[10px] text-stone-400 font-bold uppercase tracking-wider">Today's Revenue</p>
-                <p className="text-2xl font-black text-[#6B2D0E] mt-1">₹{statsData.stats.revenueToday.toLocaleString()}</p>
+                <p className="text-2xl font-black text-[#6B2D0E] mt-1">₹{statsData?.stats?.revenueToday.toLocaleString()}</p>
                 <p className="text-[10px] text-green-600 font-bold mt-1">▲ Instantly authorised receipts</p>
               </div>
 
               <div className="bg-white border border-[#D4B896]/50 rounded-xl p-5 shadow-sm">
                 <p className="text-[10px] text-stone-400 font-bold uppercase tracking-wider">All-Time Revenue</p>
-                <p className="text-2xl font-black text-green-700 mt-1">₹{statsData.stats.revenueAllTime.toLocaleString()}</p>
+                <p className="text-2xl font-black text-green-700 mt-1">₹{statsData?.stats?.revenueAllTime.toLocaleString()}</p>
                 <p className="text-[10px] text-green-600 font-bold mt-1">▲ Accumulate book values</p>
               </div>
 
               <div className="bg-white border border-[#D4B896]/50 rounded-xl p-5 shadow-sm">
                 <p className="text-[10px] text-stone-400 font-bold uppercase tracking-wider">Total Customers</p>
-                <p className="text-2xl font-black text-[#2C1810] mt-1">{statsData.stats.newCustomersCount} Vedic Souls</p>
+                <p className="text-2xl font-black text-[#2C1810] mt-1">{statsData?.stats?.newCustomersCount} Vedic Souls</p>
                 <p className="text-[10px] text-blue-600 font-bold mt-1">Registered patron accounts</p>
               </div>
 
@@ -1392,25 +1405,25 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
                     <span className="font-bold text-amber-800 flex items-center gap-1.5">
                       <span className="h-2 w-2 rounded-full bg-amber-500"></span> PENDING:
                     </span>
-                    <span className="font-black text-amber-800 bg-white h-5 w-5 rounded-full flex items-center justify-center border border-amber-200">{statsData.orderBreakdown.PENDING}</span>
+                    <span className="font-black text-amber-800 bg-white h-5 w-5 rounded-full flex items-center justify-center border border-amber-200">{statsData?.orderBreakdown?.PENDING}</span>
                   </div>
                   <div className="flex justify-between items-center bg-blue-50 rounded-xl p-2.5 border border-blue-100">
                     <span className="font-bold text-blue-800 flex items-center gap-1.5">
                       <span className="h-2 w-2 rounded-full bg-blue-500"></span> CONFIRMED:
                     </span>
-                    <span className="font-black text-blue-800 bg-white h-5 w-5 rounded-full flex items-center justify-center border border-blue-200">{statsData.orderBreakdown.CONFIRMED}</span>
+                    <span className="font-black text-blue-800 bg-white h-5 w-5 rounded-full flex items-center justify-center border border-blue-200">{statsData?.orderBreakdown?.CONFIRMED}</span>
                   </div>
                   <div className="flex justify-between items-center bg-purple-50 rounded-xl p-2.5 border border-purple-100">
                     <span className="font-bold text-purple-800 flex items-center gap-1.5">
                       <span className="h-2 w-2 rounded-full bg-purple-500"></span> SHIPPED:
                     </span>
-                    <span className="font-black text-purple-800 bg-white h-5 w-5 rounded-full flex items-center justify-center border border-purple-200">{statsData.orderBreakdown.SHIPPED}</span>
+                    <span className="font-black text-purple-800 bg-white h-5 w-5 rounded-full flex items-center justify-center border border-purple-200">{statsData?.orderBreakdown?.SHIPPED}</span>
                   </div>
                   <div className="flex justify-between items-center bg-green-50 rounded-xl p-2.5 border border-green-100">
                     <span className="font-bold text-green-800 flex items-center gap-1.5">
                       <span className="h-2 w-2 rounded-full bg-green-500"></span> DELIVERED:
                     </span>
-                    <span className="font-black text-green-800 bg-white h-5 w-5 rounded-full flex items-center justify-center border border-green-200">{statsData.orderBreakdown.DELIVERED}</span>
+                    <span className="font-black text-green-800 bg-white h-5 w-5 rounded-full flex items-center justify-center border border-green-200">{statsData?.orderBreakdown?.DELIVERED}</span>
                   </div>
                 </div>
               </div>
@@ -1433,7 +1446,7 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
                     products.filter(p => p.stock < lowStockAlertLimit).map(p => (
                       <div key={p.id} className="flex justify-between items-center bg-stone-50 border border-stone-100 rounded-xl p-3 text-xs">
                         <div className="flex items-center gap-3">
-                          <img src={p.images[0]} alt="" className="h-8 w-8 rounded object-cover" />
+                          <img src={p.images?.[0] || '/logo.png'} alt="" className="h-8 w-8 rounded object-cover" />
                           <div>
                             <p className="font-bold text-[#2C1810]">{p.name}</p>
                             <p className="text-[10px] text-stone-400">{p.category}</p>
@@ -1622,7 +1635,7 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
                           />
                         </td>
                         <td className="p-4">
-                          <img src={p.images[0]} alt="" className="h-10 w-10 rounded-lg object-cover border border-[#D4B896]/30" />
+                          <img src={p.images?.[0] || '/logo.png'} alt="" className="h-10 w-10 rounded-lg object-cover border border-[#D4B896]/30" />
                         </td>
                         <td className="p-4">
                           <p className="font-bold text-[#2C1810]" onClick={() => handleOpenEditProduct(p)}>{p.name}</p>
@@ -3215,6 +3228,7 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
                           type="button"
                           onClick={() => {
                             setProdImages(prev => prev.filter((_, i) => i !== idx));
+                            setProdImagePublicIds(prev => prev.filter((_, i) => i !== idx));
                           }}
                           className="absolute inset-0 bg-red-600/90 text-white flex items-center justify-center text-[8px] font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity"
                         >

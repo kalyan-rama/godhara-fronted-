@@ -292,7 +292,7 @@ export default function Home({ products, categories, setView, setSelectedProduct
                   >
                     <div className="relative aspect-square overflow-hidden bg-stone-100">
                       <img
-                        src={product.images[0]}
+                        src={product.images?.[0] || '/logo.png'}
                         alt={product.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none"
                       />
@@ -459,7 +459,7 @@ export default function Home({ products, categories, setView, setSelectedProduct
                 >
                   <div className="relative aspect-square bg-stone-50 overflow-hidden">
                     <img
-                      src={product.images[0]}
+                      src={product.images?.[0] || '/logo.png'}
                       alt={product.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none"
                     />

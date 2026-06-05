@@ -8,6 +8,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default defineConfig({
+  // root is the directory containing index.html — that's the current dir (frontend/)
+  root: __dirname,
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
@@ -15,7 +17,11 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: 'dist',
+    outDir: path.resolve(__dirname, './dist'),
     emptyOutDir: true,
+  },
+  server: {
+    hmr: process.env.DISABLE_HMR !== 'true',
+    watch: process.env.DISABLE_HMR === 'true' ? null : {},
   },
 });

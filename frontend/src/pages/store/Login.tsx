@@ -11,7 +11,7 @@ interface LoginProps {
 type AuthMode = 'LOGIN' | 'FORGOT_PASSWORD' | 'RESET_PASSWORD' | 'VERIFY_PENDING' | 'OTP_CHALLENGE';
 
 export default function Login({ setView }: LoginProps) {
-  const { login, googleLogin } = useAuth();
+  const { login, googleLogin, updateUser} = useAuth();
   
   // Navigation internal mode
   const [mode, setMode] = useState<AuthMode>('LOGIN');
@@ -62,9 +62,9 @@ export default function Login({ setView }: LoginProps) {
       }
     }
 
-    const requiresOtp = params.get('requiresOtp');
+    const requiresOTP = params.get('requiresOTP');
     const paramEmail = params.get('email');
-    if (requiresOtp === 'true' && paramEmail) {
+    if (requiresOTP === 'true' && paramEmail) {
       setEmail(paramEmail);
       setMode('OTP_CHALLENGE');
       setInfoVal('🛡️ Multi-Factor OTP Verification required for administrator accounts. A secure single-use passcode has been sent to your registered email.');
@@ -111,19 +111,15 @@ export default function Login({ setView }: LoginProps) {
         throw new Error(data.message || 'Access credentials invalid');
       }
 
-      if (data.requiresOtp) {
+      if (data.requiresOTP) {
         setAuthTempUser(data); // save temporarily
         setMode('OTP_CHALLENGE');
         setInfoVal(data.message || '🛡️ Multi-Factor OTP Verification required for administrator accounts. A secure single-use passcode has been sent to your email.');
         setLoading(false);
       } else {
-        // Direct customer logon
-        localStorage.setItem('gdh_user', JSON.stringify(data.user));
-        localStorage.setItem('gdh_token', data.accessToken);
-        localStorage.setItem('gdh_refresh_token', data.refreshToken);
-        
-        // Refresh browser window / contexts
-        window.location.reload();
+        // Direct customer logon — set via AuthContext to trigger state update
+        googleLogin(data.accessToken, data.refreshToken || '', data.user);
+        setView('home');
       }
     } catch (err: any) {
       setErrorVal(err.message || 'Authentication error.');
@@ -162,9 +158,9 @@ export default function Login({ setView }: LoginProps) {
 
       const handleMessage = (event: MessageEvent) => {
         if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
-          const { accessToken, refreshToken, user: authUser, requiresOtp } = event.data;
+          const { accessToken, refreshToken, user: authUser, requiresOTP } = event.data;
           
-          if (requiresOtp) {
+          if (requiresOTP) {
             setAuthTempUser({ accessToken: null, refreshToken: null, user: authUser });
             setEmail(authUser.email);
             setMode('OTP_CHALLENGE');
@@ -172,12 +168,7 @@ export default function Login({ setView }: LoginProps) {
           } else {
             googleLogin(accessToken, refreshToken, authUser);
             setInfoVal(`🙏 Welcome, ${authUser.name}! Successfully signed in via Google.`);
-            setTimeout(() => {
-              setView('home');
-              setTimeout(() => {
-                window.location.reload();
-              }, 100);
-            }, 1200);
+            setTimeout(() => setView('home'), 800);
           }
 
           window.removeEventListener('message', handleMessage);
@@ -229,14 +220,9 @@ export default function Login({ setView }: LoginProps) {
         throw new Error(data.message || 'Security passcode verification failed.');
       }
 
-      // Successful verification
-      localStorage.setItem('gdh_user', JSON.stringify(data.user));
-      localStorage.setItem('gdh_token', data.accessToken);
-      localStorage.setItem('gdh_refresh_token', data.refreshToken);
-      
-      // Navigate to admin
+      // Successful verification — set via AuthContext so admin state is immediately reflected
+      googleLogin(data.accessToken, data.refreshToken || '', data.user);
       setView('admin');
-      window.location.reload();
     } catch (err: any) {
       setErrorVal(err.message || 'Passcode rejected.');
     } finally {

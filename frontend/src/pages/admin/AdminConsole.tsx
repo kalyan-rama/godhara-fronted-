@@ -118,7 +118,15 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
   const [flatShippingCost, setFlatShippingCost] = useState(50);
   const [announcementBanner, setAnnouncementBanner] = useState('Shop ₹1000 to Get Free Shipping');
   const [lowStockAlertLimit, setLowStockAlertLimit] = useState(10);
-  
+
+  // Delivery settings
+  const [deliveryChargeTelangana, setDeliveryChargeTelangana] = useState(70);
+  const [deliveryChargeAP, setDeliveryChargeAP] = useState(80);
+  const [deliveryChargeOther, setDeliveryChargeOther] = useState(100);
+  const [freeDeliveryPincodes, setFreeDeliveryPincodes] = useState('');
+  const [storeServicePincodes, setStoreServicePincodes] = useState('');
+  const [storeLocations, setStoreLocations] = useState('');
+
   // Custom label view mode toggle
   const [labelsViewMode, setLabelsViewMode] = useState<'grid' | 'table'>('grid');
   
@@ -390,6 +398,14 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
         setAnnouncementBanner(sets.announcementText || 'Shop ₹1000 to Get Free Shipping');
         setLowStockAlertLimit(sets.lowStockThreshold || 10);
         
+        // Delivery settings
+        setDeliveryChargeTelangana(sets.deliveryChargeTelangana !== undefined ? sets.deliveryChargeTelangana : 70);
+        setDeliveryChargeAP(sets.deliveryChargeAP !== undefined ? sets.deliveryChargeAP : 80);
+        setDeliveryChargeOther(sets.deliveryChargeOther !== undefined ? sets.deliveryChargeOther : 100);
+        setFreeDeliveryPincodes(Array.isArray(sets.freeDeliveryPincodes) ? sets.freeDeliveryPincodes.join(', ') : (sets.freeDeliveryPincodes || ''));
+        setStoreServicePincodes(Array.isArray(sets.storeServicePincodes) ? sets.storeServicePincodes.join(', ') : (sets.storeServicePincodes || ''));
+        setStoreLocations(Array.isArray(sets.storeLocations) ? sets.storeLocations.join('\n') : (sets.storeLocations || ''));
+
         // Brand identity fields
         setLogoUrl(sets.logoUrl || '/logo.png');
         setFounderImageUrl(sets.founderImageUrl || '');
@@ -959,6 +975,14 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
       flatShippingCharge: flatShippingCost,
       announcementText: announcementBanner,
       lowStockThreshold: lowStockAlertLimit,
+      
+      // Delivery settings
+      deliveryChargeTelangana,
+      deliveryChargeAP,
+      deliveryChargeOther,
+      freeDeliveryPincodes: freeDeliveryPincodes.split(',').map(p => p.trim()).filter(Boolean),
+      storeServicePincodes: storeServicePincodes.split(',').map(p => p.trim()).filter(Boolean),
+      storeLocations: storeLocations.split('\n').map(l => l.trim()).filter(Boolean),
       
       // Brand parameters
       logoUrl,
@@ -2975,6 +2999,78 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
                     onChange={(e) => setLowStockAlertLimit(parseInt(e.target.value))}
                     className="bg-stone-50 border border-[#D4B896]/70 p-2.5 rounded focus:outline-none focus:ring-1 focus:ring-[#E8820C] font-mono font-bold w-1/3"
                   />
+                </div>
+
+                {/* DELIVERY CONFIGURATION SECTION */}
+                <div className="col-span-1 sm:col-span-2 border-t border-[#D4B896]/30 pt-6 mt-4">
+                  <h3 className="text-sm font-serif font-black text-[#6B2D0E] mb-1">Dynamic Delivery Configuration</h3>
+                  <p className="text-[10px] text-stone-400 uppercase tracking-widest font-bold mb-4">State-based charges, free delivery pincodes, and offline store service areas</p>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-bold uppercase text-stone-400">Telangana Delivery Charge (₹)</label>
+                      <input
+                        type="number"
+                        value={deliveryChargeTelangana}
+                        onChange={(e) => setDeliveryChargeTelangana(parseInt(e.target.value))}
+                        className="bg-stone-50 border border-[#D4B896]/70 p-2.5 rounded focus:outline-none focus:ring-1 focus:ring-[#E8820C] font-mono font-bold"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-bold uppercase text-stone-400">Andhra Pradesh Charge (₹)</label>
+                      <input
+                        type="number"
+                        value={deliveryChargeAP}
+                        onChange={(e) => setDeliveryChargeAP(parseInt(e.target.value))}
+                        className="bg-stone-50 border border-[#D4B896]/70 p-2.5 rounded focus:outline-none focus:ring-1 focus:ring-[#E8820C] font-mono font-bold"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-bold uppercase text-stone-400">Other States Charge (₹)</label>
+                      <input
+                        type="number"
+                        value={deliveryChargeOther}
+                        onChange={(e) => setDeliveryChargeOther(parseInt(e.target.value))}
+                        className="bg-stone-50 border border-[#D4B896]/70 p-2.5 rounded focus:outline-none focus:ring-1 focus:ring-[#E8820C] font-mono font-bold"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-bold uppercase text-stone-400">Free Delivery Pincodes</label>
+                      <p className="text-[9px] text-stone-400">Comma-separated pincodes that always get free delivery (e.g. 500001, 503187)</p>
+                      <input
+                        type="text"
+                        value={freeDeliveryPincodes}
+                        onChange={(e) => setFreeDeliveryPincodes(e.target.value)}
+                        placeholder="500001, 503187, 508001"
+                        className="bg-stone-50 border border-[#D4B896]/70 p-2.5 rounded focus:outline-none focus:ring-1 focus:ring-[#E8820C] font-mono text-xs"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-bold uppercase text-stone-400">Store Service Area Pincodes</label>
+                      <p className="text-[9px] text-stone-400">Pincodes covered by offline store pickup/delivery (always ₹0)</p>
+                      <input
+                        type="text"
+                        value={storeServicePincodes}
+                        onChange={(e) => setStoreServicePincodes(e.target.value)}
+                        placeholder="503187, 503001"
+                        className="bg-stone-50 border border-[#D4B896]/70 p-2.5 rounded focus:outline-none focus:ring-1 focus:ring-[#E8820C] font-mono text-xs"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5 sm:col-span-2">
+                      <label className="text-[10px] font-bold uppercase text-stone-400">Offline Store Locations</label>
+                      <p className="text-[9px] text-stone-400">One location per line (displayed on storefront for customer reference)</p>
+                      <textarea
+                        value={storeLocations}
+                        onChange={(e) => setStoreLocations(e.target.value)}
+                        rows={3}
+                        placeholder={"Godhara Store — Banswada, Telangana 503187\nGodhara Outlet — Hyderabad, Telangana 500001"}
+                        className="bg-stone-50 border border-[#D4B896]/70 p-2.5 rounded focus:outline-none focus:ring-1 focus:ring-[#E8820C] font-mono text-xs resize-none"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {/* BRAND ASSETS SECTION */}

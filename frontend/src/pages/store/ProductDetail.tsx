@@ -41,7 +41,7 @@ export default function ProductDetail({ product, setView }: ProductDetailProps) 
           <div className="flex flex-col gap-4">
             <div className="aspect-square bg-stone-50 rounded-xl overflow-hidden border border-stone-100 relative shadow-inner">
               <img
-                src={product.images[0]}
+                src={product.images?.[0] || '/logo.png'}
                 alt={product.name}
                 className="w-full h-full object-cover pointer-events-none select-none"
               />

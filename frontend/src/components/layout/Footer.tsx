@@ -122,11 +122,10 @@ export default function Footer({ setView, setCategory }: FooterProps) {
             </span>
             <div className="flex items-center gap-3 sm:gap-4 flex-wrap bg-white/5 py-1.5 px-4 rounded-full border border-white/5 shadow-inner">
               {/* Visa Logo */}
-             <svg
-  className="h-5 sm:h-6 w-[42px] sm:w-[50px] text-white fill-current opacity-80 hover:opacity-100 hover:scale-105 transition-all duration-200 cursor-pointer"
-  viewBox="0 0 24 8"
-  xmlns="http://www.w3.org/2000/svg"
->
+      {/* Visa Logo */}
+<div className="font-extrabold italic text-white text-xl sm:text-2xl tracking-[-1px] opacity-80 hover:opacity-100 hover:scale-105 transition-all duration-200 cursor-pointer">
+  VISA
+</div>
                 <path d="M4.606 7.91h-1.5L4.852.7h1.493l-1.74 7.21zm7.42-7.052c-.31-.118-.8-.246-1.408-.246-1.49 0-2.541.767-2.551 1.86-.01.81.748 1.26 1.319 1.53c.584.27.781.455.779.7-.003.376-.464.55-.893.55-.595 0-1.077-.161-1.654-.403l-.234-.105-.251 1.517c.418.187 1.189.35 1.986.357 1.866 0 3.08-.89 3.097-2.27.01-.762-.468-1.341-1.494-1.82-.622-.303-.997-.506-.997-.813.003-.284.32-.577.994-.577.568-.01.987.119 1.309.255l.156.07.248-1.483zm5.7 5.253l.808-2.146.467 2.146h-1.275zm1.96-5.411h-1.391c-.43 0-.796.242-.962.628l-2.723 6.583h1.564l.312-.835h1.91l.18 1.107c.337.034 1.22-.05 1.547-.05l-1.353-6.282c-.221-.594-.572-1.15-.897-1.15zm-14.808 0h-1.45L.4 5.2c-.083.21-.182.355-.383.473L0 5.76h.04l2.454.498 1.488-5.558H3.98l-1.452 5.56H4.62c.11 0 .211-.083.242-.208L6.078.7H4.878z" />
               </svg>
 

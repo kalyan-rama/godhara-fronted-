@@ -111,3 +111,4 @@ export interface CustomerHistory {
   totalOrders: number;
   totalSpent: number;
 }
+

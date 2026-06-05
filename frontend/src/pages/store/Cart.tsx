@@ -62,7 +62,7 @@ export default function Cart({ setView }: CartProps) {
                   className="bg-white border border-[#D4B896]/40 p-4 rounded-xl flex items-center gap-4 hover:shadow-sm transition-all"
                 >
                   <div className="h-20 w-20 sm:h-24 sm:w-24 bg-stone-50 rounded-lg overflow-hidden border border-now-100 shrink-0">
-                    <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+                    <img src={product.images?.[0] || '/logo.png'} alt={product.name} className="w-full h-full object-cover" />
                   </div>
 
                   <div className="flex-1 flex flex-col sm:flex-row justify-between h-full gap-4">

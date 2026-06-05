@@ -608,3 +608,4 @@ export default function Checkout({ setView, setCompletedOrder }: CheckoutProps) 
     </div>
   );
 }
+

@@ -74,7 +74,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Registration failed');
 
-    // Auto-login: if the backend returns tokens + user, set session immediately
+    // If OTP is required (new flow), return data without setting user
+    if (data.requiresOTP) {
+      return data;
+    }
+
+    // Auto-login: if the backend returns tokens + user (e.g. Google account upgrade), set session immediately
     if (data.accessToken && data.user) {
       setUser(data.user);
       setToken(data.accessToken);
@@ -83,14 +88,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data.refreshToken) {
         localStorage.setItem('gdh_refresh_token', data.refreshToken);
       }
-    } else {
-      // Fallback: attempt login with the supplied credentials
-      try {
-        await login(userData.email, userData.password);
-      } catch {
-        // If auto-login fails, registration still succeeded
-      }
     }
+    return data;
   };
 
   const logout = () => {

@@ -127,7 +127,6 @@ export default function Footer({ setView, setCategory }: FooterProps) {
                 viewBox="0 0 24 8" 
                 fill="none" 
                 xmlns="http://www.w3.org/2000/svg"
-                title="Visa"
               >
                 <path d="M4.606 7.91h-1.5L4.852.7h1.493l-1.74 7.21zm7.42-7.052c-.31-.118-.8-.246-1.408-.246-1.49 0-2.541.767-2.551 1.86-.01.81.748 1.26 1.319 1.53c.584.27.781.455.779.7-.003.376-.464.55-.893.55-.595 0-1.077-.161-1.654-.403l-.234-.105-.251 1.517c.418.187 1.189.35 1.986.357 1.866 0 3.08-.89 3.097-2.27.01-.762-.468-1.341-1.494-1.82-.622-.303-.997-.506-.997-.813.003-.284.32-.577.994-.577.568-.01.987.119 1.309.255l.156.07.248-1.483zm5.7 5.253l.808-2.146.467 2.146h-1.275zm1.96-5.411h-1.391c-.43 0-.796.242-.962.628l-2.723 6.583h1.564l.312-.835h1.91l.18 1.107c.337.034 1.22-.05 1.547-.05l-1.353-6.282c-.221-.594-.572-1.15-.897-1.15zm-14.808 0h-1.45L.4 5.2c-.083.21-.182.355-.383.473L0 5.76h.04l2.454.498 1.488-5.558H3.98l-1.452 5.56H4.62c.11 0 .211-.083.242-.208L6.078.7H4.878z" />
               </svg>
@@ -140,7 +139,6 @@ export default function Footer({ setView, setCategory }: FooterProps) {
                 viewBox="0 0 32 20" 
                 fill="none" 
                 xmlns="http://www.w3.org/2000/svg"
-                title="Mastercard"
               >
                 <circle cx="10" cy="10" r="10" fill="#EB001B" />
                 <circle cx="22" cy="10" r="10" fill="#F79E1B" />
@@ -155,7 +153,6 @@ export default function Footer({ setView, setCategory }: FooterProps) {
                 viewBox="0 0 38 15" 
                 fill="none" 
                 xmlns="http://www.w3.org/2000/svg"
-                title="Google Pay"
               >
                 <g transform="translate(0, 0.5)">
                   <path d="M6.5 2.8c1.1 0 2.1.4 2.9 1.1l2.2-2.1C10.2.7 8.5 0 6.5 0 4 0 1.8 1.4.7 3.5l2.5 1.9C3.8 3.8 5 2.8 6.5 2.8z" fill="#EA4335" />
@@ -174,7 +171,6 @@ export default function Footer({ setView, setCategory }: FooterProps) {
                 viewBox="0 0 78 15" 
                 fill="none" 
                 xmlns="http://www.w3.org/2000/svg"
-                title="BHIM UPI"
               >
                 <text x="0" y="11.5" fill="#FFFFFF" fontFamily="'Inter', system-ui, sans-serif" fontWeight="900" fontStyle="italic" fontSize="11px" letterSpacing="-0.3px">BHIM</text>
                 <g transform="translate(32, 0.5) skewX(-12)">
@@ -198,7 +194,6 @@ export default function Footer({ setView, setCategory }: FooterProps) {
                   strokeLinecap="round" 
                   strokeLinejoin="round"
                   xmlns="http://www.w3.org/2005/svg"
-                  title="Net Banking"
                 >
                   <path d="M3 21h18M21 21v-8M21 10h-2M3 21v-8M3 10h2M5 21v-8M9 21v-8M13 21v-8M17 21v-8M10 21h4M2 10L12 3l10 7" />
                 </svg>
@@ -221,7 +216,6 @@ export default function Footer({ setView, setCategory }: FooterProps) {
                   strokeLinecap="round" 
                   strokeLinejoin="round"
                   xmlns="http://www.w3.org/2000/svg"
-                  title="Payment Wallet"
                 >
                   <path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h14v4" />
                   <path d="M4 6v12a2 2 0 0 0 2 2h14v-4" />

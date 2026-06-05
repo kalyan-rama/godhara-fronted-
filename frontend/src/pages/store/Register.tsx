@@ -9,7 +9,7 @@ interface RegisterProps {
 }
 
 export default function Register({ setView }: RegisterProps) {
-  const { register, googleLogin } = useAuth();
+  const { register, googleLogin, isAuthenticated } = useAuth();
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -110,15 +110,11 @@ export default function Register({ setView }: RegisterProps) {
           pincode
         }
       });
-      setSuccessVal('Vedic account registered successfully! We have dispatched a 24-hours confirmation link. Kindly confirm your mailbox to activate.');
-      setName('');
-      setEmail('');
-      setPassword('');
-      setConfirmPassword('');
-      setPhone('');
-      setStreet('');
-      setCity('');
-      setPincode('');
+      // Instant login — redirect to home immediately
+      setSuccessVal('✅ Account created successfully. Welcome to Godhara.');
+      setTimeout(() => {
+        setView('home');
+      }, 800);
     } catch (err: any) {
       setErrorVal(err.message || 'Registration failure. Check network settings.');
     } finally {

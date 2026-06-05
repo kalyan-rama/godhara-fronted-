@@ -50,22 +50,39 @@ export default function Checkout({ setView, setCompletedOrder }: CheckoutProps) 
 
   // Load shipping charge and threshold dynamically from DB settings
   const [freeThreshold, setFreeThreshold] = useState(1000);
-  const [flatShipping, setFlatShipping] = useState(50);
+  const [deliveryCharge, setDeliveryCharge] = useState(100);
+  const [deliveryFreeReason, setDeliveryFreeReason] = useState('');
 
   useEffect(() => {
-    // Fetch dynamic store configuration
     fetch(`${API_URL}/api/settings`)
       .then(res => res.json())
       .then(data => {
-        if (data) {
-          if (data.freeShippingThreshold !== undefined) setFreeThreshold(data.freeShippingThreshold);
-          if (data.flatShippingCharge !== undefined) setFlatShipping(data.flatShippingCharge);
-        }
+        if (data?.freeShippingThreshold !== undefined) setFreeThreshold(data.freeShippingThreshold);
       })
-      .catch(e => console.error('Failed loading public store config:', e));
+      .catch(() => {});
   }, []);
 
-  const deliveryCharge = cartSubtotal >= freeThreshold ? 0 : flatShipping;
+  // Recalculate delivery whenever pincode, state, or cart total changes
+  useEffect(() => {
+    if (cartSubtotal >= freeThreshold) {
+      setDeliveryCharge(0);
+      setDeliveryFreeReason('order_threshold');
+      return;
+    }
+    fetch(`${API_URL}/api/delivery/calculate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pincode, state })
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          setDeliveryCharge(data.deliveryCharge);
+          setDeliveryFreeReason(data.isFree ? data.reason : '');
+        }
+      })
+      .catch(() => {});
+  }, [pincode, state, cartSubtotal, freeThreshold]);
 
   // Discount computation
   let discountAmount = 0;
@@ -438,7 +455,14 @@ export default function Checkout({ setView, setCompletedOrder }: CheckoutProps) 
                 </div>
 
                 <div className="flex justify-between items-center pb-2">
-                  <span>Traditional Delivery Fee:</span>
+                  <span>Traditional Delivery Fee:
+                    {deliveryCharge === 0 && deliveryFreeReason === 'store_service_area' && (
+                      <span className="ml-1 text-[9px] bg-green-100 text-green-700 font-bold px-1.5 py-0.5 rounded uppercase">Store Area</span>
+                    )}
+                    {deliveryCharge === 0 && deliveryFreeReason === 'free_delivery_pincode' && (
+                      <span className="ml-1 text-[9px] bg-blue-100 text-blue-700 font-bold px-1.5 py-0.5 rounded uppercase">Free Pincode</span>
+                    )}
+                  </span>
                   {deliveryCharge === 0 ? (
                     <span className="text-green-600 font-bold uppercase">FREE</span>
                   ) : (

@@ -11,7 +11,7 @@ interface LoginProps {
 type AuthMode = 'LOGIN' | 'FORGOT_PASSWORD' | 'RESET_PASSWORD' | 'VERIFY_PENDING' | 'OTP_CHALLENGE';
 
 export default function Login({ setView }: LoginProps) {
-  const { login, googleLogin, updateUser} = useAuth();
+  const { login, googleLogin } = useAuth();
   
   // Navigation internal mode
   const [mode, setMode] = useState<AuthMode>('LOGIN');
@@ -62,9 +62,9 @@ export default function Login({ setView }: LoginProps) {
       }
     }
 
-    const requiresOTP = params.get('requiresOTP');
+    const requiresOtp = params.get('requiresOtp');
     const paramEmail = params.get('email');
-    if (requiresOTP === 'true' && paramEmail) {
+    if (requiresOtp === 'true' && paramEmail) {
       setEmail(paramEmail);
       setMode('OTP_CHALLENGE');
       setInfoVal('🛡️ Multi-Factor OTP Verification required for administrator accounts. A secure single-use passcode has been sent to your registered email.');
@@ -111,15 +111,19 @@ export default function Login({ setView }: LoginProps) {
         throw new Error(data.message || 'Access credentials invalid');
       }
 
-      if (data.requiresOTP) {
+      if (data.requiresOtp) {
         setAuthTempUser(data); // save temporarily
         setMode('OTP_CHALLENGE');
         setInfoVal(data.message || '🛡️ Multi-Factor OTP Verification required for administrator accounts. A secure single-use passcode has been sent to your email.');
         setLoading(false);
       } else {
-        // Direct customer logon — set via AuthContext to trigger state update
-        googleLogin(data.accessToken, data.refreshToken || '', data.user);
-        setView('home');
+        // Direct customer logon
+        localStorage.setItem('gdh_user', JSON.stringify(data.user));
+        localStorage.setItem('gdh_token', data.accessToken);
+        localStorage.setItem('gdh_refresh_token', data.refreshToken);
+        
+        // Refresh browser window / contexts
+        window.location.reload();
       }
     } catch (err: any) {
       setErrorVal(err.message || 'Authentication error.');
@@ -158,9 +162,9 @@ export default function Login({ setView }: LoginProps) {
 
       const handleMessage = (event: MessageEvent) => {
         if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
-          const { accessToken, refreshToken, user: authUser, requiresOTP } = event.data;
+          const { accessToken, refreshToken, user: authUser, requiresOtp } = event.data;
           
-          if (requiresOTP) {
+          if (requiresOtp) {
             setAuthTempUser({ accessToken: null, refreshToken: null, user: authUser });
             setEmail(authUser.email);
             setMode('OTP_CHALLENGE');
@@ -168,7 +172,12 @@ export default function Login({ setView }: LoginProps) {
           } else {
             googleLogin(accessToken, refreshToken, authUser);
             setInfoVal(`🙏 Welcome, ${authUser.name}! Successfully signed in via Google.`);
-            setTimeout(() => setView('home'), 800);
+            setTimeout(() => {
+              setView('home');
+              setTimeout(() => {
+                window.location.reload();
+              }, 100);
+            }, 1200);
           }
 
           window.removeEventListener('message', handleMessage);
@@ -220,9 +229,14 @@ export default function Login({ setView }: LoginProps) {
         throw new Error(data.message || 'Security passcode verification failed.');
       }
 
-      // Successful verification — set via AuthContext so admin state is immediately reflected
-      googleLogin(data.accessToken, data.refreshToken || '', data.user);
+      // Successful verification
+      localStorage.setItem('gdh_user', JSON.stringify(data.user));
+      localStorage.setItem('gdh_token', data.accessToken);
+      localStorage.setItem('gdh_refresh_token', data.refreshToken);
+      
+      // Navigate to admin
       setView('admin');
+      window.location.reload();
     } catch (err: any) {
       setErrorVal(err.message || 'Passcode rejected.');
     } finally {
@@ -519,7 +533,7 @@ export default function Login({ setView }: LoginProps) {
                   disabled={loading}
                   className="w-full bg-[#6B2D0E] hover:bg-[#E8820C] text-white font-bold py-3 rounded-full shadow hover:shadow-md transition-all mt-3 select-none cursor-pointer text-xs"
                 >
-                  {loading ? 'Authenticating Sacred Sessions...' : 'Sign In Now'}
+                  {loading ? 'Signing In...' : 'Sign In Now'}
                 </button>
 
                 <div className="relative my-2">
@@ -568,7 +582,7 @@ export default function Login({ setView }: LoginProps) {
                       disabled={loading || cooldown > 0 || !email}
                       className="bg-[#6B2D0E] hover:bg-[#E8820C] text-white font-bold text-xs px-4 py-2.5 rounded-lg disabled:opacity-50 select-none cursor-pointer duration-100 shrink-0"
                     >
-                      {cooldown > 0 ? `${cooldown}s` : otpSent ? 'Resend' : 'Send'}
+                      {loading ? 'Sending OTP...' : (cooldown > 0 ? `${cooldown}s` : otpSent ? 'Resend' : 'Send')}
                     </button>
                   </div>
                 </div>
@@ -596,7 +610,7 @@ export default function Login({ setView }: LoginProps) {
                   disabled={loading || !otpSent || otpCode.length < 6}
                   className="w-full bg-[#6B2D0E] hover:bg-[#E8820C] text-white font-bold py-3 rounded-full shadow hover:shadow-md transition-all mt-3 select-none cursor-pointer text-xs disabled:opacity-50"
                 >
-                  {loading ? 'Authenticating passcode...' : 'Verify & Log In'}
+                  {loading ? 'Verifying OTP...' : 'Verify & Log In'}
                 </button>
               </form>
             )}
@@ -628,7 +642,7 @@ export default function Login({ setView }: LoginProps) {
               disabled={loading || otpCode.length < 6}
               className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-full shadow hover:shadow-md transition-all mt-2 select-none cursor-pointer text-xs"
             >
-              {loading ? 'Authorizing Administrative Credentials...' : 'Confirm Authentication'}
+              {loading ? 'Verifying OTP...' : 'Confirm Authentication'}
             </button>
 
             <button

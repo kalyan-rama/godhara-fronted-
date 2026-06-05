@@ -235,7 +235,7 @@ export default function Footer({ setView, setCategory }: FooterProps) {
             <p className="text-xs text-amber-200/60 mt-1">
               Built by{' '}
               <a
-                href="#nexkite-anchor"
+                href="https://nexakite.shop/"
                 className="text-white hover:text-[#E8820C] font-bold inline-flex items-center gap-0.5 group transition-colors"
               >
                 Nexkite

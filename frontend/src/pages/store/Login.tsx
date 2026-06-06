@@ -371,13 +371,7 @@ export default function Login({ setView }: LoginProps) {
         {/* ── 1. LOGIN ── */}
         {mode === 'LOGIN' && (
           <>
-            <div className="w-full bg-[#F5EFE6]/60 rounded-xl border border-[#D4B896]/30 p-3.5 text-[10px] text-stone-500 font-sans leading-normal mb-6 flex flex-col gap-1">
-              <p className="font-bold text-[#6B2D0E] flex items-center gap-1">
-                <ShieldCheck size={12} className="text-[#E8820C]" /> Demo Workspace Accounts:
-              </p>
-              <p><strong>Admin (OTP via Email):</strong> godhara.2026@gmail.com | <strong>Pass:</strong> admin123</p>
-              <p><strong>Customer (OTP via Email):</strong> seeker@vedic.com</p>
-            </div>
+           
 
             <div className="flex w-full bg-stone-100 p-1 rounded-full mb-6 max-w-sm">
               <button type="button" onClick={() => { setIsOtpLogin(false); setErrorVal(''); setInfoVal(''); }}

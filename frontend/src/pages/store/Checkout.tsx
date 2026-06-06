@@ -523,7 +523,12 @@ export default function Checkout({ setView, setCompletedOrder }: CheckoutProps) 
                 disabled={loading || cartCount === 0}
                 className="w-full bg-[#E8820C] hover:bg-[#6B2D0E] disabled:bg-stone-300 text-white font-bold py-4 rounded-full shadow hover:shadow-md mt-6 select-none transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer text-sm"
               >
-                {loading ? 'Processing Vedic Channels...' : `Place Order (₹${totalPayable.toLocaleString()})`}
+                {loading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    Processing...
+                  </>
+                ) : `Place Order (₹${totalPayable.toLocaleString()})`}
               </button>
             </div>
 

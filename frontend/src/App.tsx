@@ -126,10 +126,11 @@ function StorefrontApp() {
       {/* 2. Primary dynamic viewport router */}
       <main className="flex-grow">
         {loading ? (
-          <div className="flex flex-col items-center justify-center min-h-[400px] font-serif py-20">
-            <span className="text-[#6B2D0E] font-bold text-lg animate-pulse tracking-widest">
-              Connecting Vedic Sanctuary Channels...
-            </span>
+          <div className="flex flex-col items-center justify-center min-h-[60vh] animate-fadeIn">
+            <div className="w-12 h-12 border-4 border-[#E8820C]/30 border-t-[#6B2D0E] rounded-full animate-spin"></div>
+            <p className="mt-4 text-[#6B2D0E] font-medium">
+              Loading Godhara...
+            </p>
           </div>
         ) : (
           (() => {

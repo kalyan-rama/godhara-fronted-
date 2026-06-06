@@ -375,7 +375,7 @@ export default function Login({ setView }: LoginProps) {
               <p className="font-bold text-[#6B2D0E] flex items-center gap-1">
                 <ShieldCheck size={12} className="text-[#E8820C]" /> Demo Workspace Accounts:
               </p>
-              <p><strong>Admin (OTP via Email):</strong> kalyanvasantham906@gmail.com | <strong>Pass:</strong> admin123</p>
+              <p><strong>Admin (OTP via Email):</strong> godhara.2026@gmail.com | <strong>Pass:</strong> admin123</p>
               <p><strong>Customer (OTP via Email):</strong> seeker@vedic.com</p>
             </div>
 
@@ -395,7 +395,7 @@ export default function Login({ setView }: LoginProps) {
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-bold uppercase text-stone-500">Contact Email Address</label>
                   <div className="relative">
-                    <input type="email" required placeholder="e.g. kalyanvasantham906@gmail.com" value={email}
+                    <input type="email" required placeholder="e.g. godhara.2026@gmail.com" value={email}
                       onChange={(e) => setEmail(e.target.value)} disabled={loadingLogin}
                       className="w-full bg-stone-50 border border-[#D4B896]/70 text-[#2C1810] text-xs font-medium rounded-lg p-2.5 pl-9 focus:outline-none focus:ring-1 focus:ring-[#E8820C] disabled:opacity-60" />
                     <UserCheck size={14} className="absolute left-3 top-3 text-stone-400" />
@@ -561,7 +561,7 @@ export default function Login({ setView }: LoginProps) {
             <div className="flex flex-col gap-1.5">
               <label className="text-[10px] font-bold uppercase text-stone-500">Contact Email Address</label>
               <div className="relative">
-                <input type="email" required placeholder="e.g. kalyanvasantham906@gmail.com" value={email}
+                <input type="email" required placeholder="e.g. godhara.2026@gmail.com" value={email}
                   onChange={(e) => setEmail(e.target.value)} disabled={loadingForgot}
                   className="w-full bg-stone-50 border border-[#D4B896]/70 text-[#2C1810] text-xs font-medium rounded-lg p-2.5 pl-9 focus:outline-none focus:ring-1 focus:ring-[#E8820C] disabled:opacity-60" />
                 <Mail size={14} className="absolute left-3 top-3 text-stone-400" />

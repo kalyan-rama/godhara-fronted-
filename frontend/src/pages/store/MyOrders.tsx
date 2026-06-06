@@ -75,8 +75,11 @@ export default function MyOrders({ setView }: MyOrdersProps) {
         </h1>
 
         {loading ? (
-          <div className="py-20 text-center text-sm font-bold text-stone-500">
-            Communicating with associated Gaushalas...
+          <div className="flex flex-col items-center justify-center min-h-[60vh] animate-fadeIn">
+            <div className="w-12 h-12 border-4 border-[#E8820C]/30 border-t-[#6B2D0E] rounded-full animate-spin"></div>
+            <p className="mt-4 text-[#6B2D0E] font-medium">
+              Loading Godhara...
+            </p>
           </div>
         ) : orders.length === 0 ? (
           <div className="text-center py-20 bg-white border border-[#D4B896]/50 rounded-2xl p-6 shadow-sm">

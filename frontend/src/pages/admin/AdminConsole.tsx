@@ -112,7 +112,7 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
   // Settings states
   const [storeName, setStoreName] = useState('Godhara');
   const [storePhone, setStorePhone] = useState('+91 8978038932');
-  const [storeEmail, setStoreEmail] = useState('kalyanvasantham906@gmail.com');
+  const [storeEmail, setStoreEmail] = useState('godhara.2026@gmail.com');
   const [storeAddress, setStoreAddress] = useState('Pocharam Apartment, Banswada, Telangana 503187');
   const [freeShippingLimit, setFreeShippingLimit] = useState(1000);
   const [flatShippingCost, setFlatShippingCost] = useState(50);
@@ -391,7 +391,7 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
         const sets = await setRes.json();
         setStoreName(sets.storeName || 'Godhara');
         setStorePhone(sets.phone || '+91 8978038932');
-        setStoreEmail(sets.contactEmail || 'kalyanvasantham906@gmail.com');
+        setStoreEmail(sets.contactEmail || 'godhara.2026@gmail.com');
         setStoreAddress(sets.address || 'Pocharam Apartment, Banswada, Telangana 503187');
         setFreeShippingLimit(sets.freeShippingThreshold !== undefined ? sets.freeShippingThreshold : 1000);
         setFlatShippingCost(sets.flatShippingCharge !== undefined ? sets.flatShippingCharge : 50);

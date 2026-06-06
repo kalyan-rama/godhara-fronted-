@@ -34,3 +34,12 @@ html, body {
   background: #6B2D0E;
   border-radius: 9px;
 }
+
+/* Godhara loading spinner animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeIn {
+  animation: fadeIn 0.4s ease-out forwards;
+}

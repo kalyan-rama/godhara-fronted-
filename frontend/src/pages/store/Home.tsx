@@ -28,19 +28,19 @@ interface HomeProps {
 
 const HERO_SLIDES = [
   {
-    image: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&q=80&w=1400',
-    tagline: 'Pure A2 Vedic Bilona Ghee',
-    description: 'Slow-cooked in clay pots over wood fires, hand-churned from curd of grass-fed Devoted Desi Gir Cows.'
+    image: 'https://res.cloudinary.com/dndugbffx/image/upload/v1780724225/godhara_products/fgs0kxssim6nq7s1dzbv.jpg',
+    tagline: 'Panchagavya Dhoop Sticks',
+    description: 'Made from desi cow dung & natural herbal ingredients.'
   },
   {
-    image: 'https://images.unsplash.com/photo-1609137144813-f9a3ffd564fb?auto=format&fit=crop&q=80&w=1400',
-    tagline: 'Agnihotra Havans & Pooja Welcomes',
-    description: 'Sundried cow-dung cakes, loban cups, and natural camphor to purify your atmosphere and invite cosmic alignment.'
+    image: 'https://res.cloudinary.com/dndugbffx/image/upload/v1780725533/WhatsApp_Image_2026-05-31_at_11.14.01_AM_iuxeid.jpg',
+    tagline: 'Herbal Bath Powder',
+    description: 'Made from a powerful blend of Multani Mitti, A2 Milk, Reetha, Nagarmotha, Sona Geru, Kapoor, Coconut Oil, Haldi, and Neem.'
   },
   {
-    image: 'https://images.unsplash.com/photo-1540340061722-9293d5163008?auto=format&fit=crop&q=80&w=1400',
-    tagline: 'Ayurvedic Skin and Health Elixirs',
-    description: 'Enriched with five sacred offerings (Panchagavya) to restore skin vitality and organic health balances.'
+    image: 'https://res.cloudinary.com/dndugbffx/image/upload/v1780724608/godhara_products/ljxmre0sq9nua1xecamf.jpg',
+    tagline: 'Amruthadhara',
+    description: 'Godhara Amruthadhara is a natural herbal formulation inspired by Panchagavya traditions, used for wellness and spiritual practices.'
   }
 ];
 
@@ -55,7 +55,7 @@ export default function Home({ products, categories, setView, setSelectedProduct
   const [founderInfo, setFounderInfo] = useState({
     founderName: 'Ketan S., Founder of Godhara',
     founderQuote: 'Godhara was founded with a simple yet powerful vision — to bring back the purity, wisdom, and sustainability of our Indian traditions. Inspired by our cultural roots and deep respect for nature, the founders work closely with local artisans and Gaushalas to create natural, eco-friendly products made using time-honored practices.',
-    founderImageUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=600'
+    founderImageUrl: 'https://res.cloudinary.com/dndugbffx/image/upload/v1780725088/founder_yhmvml.jpg'
   });
 
   useEffect(() => {
@@ -77,8 +77,8 @@ export default function Home({ products, categories, setView, setSelectedProduct
       .then(data => {
         if (data) {
           setFounderInfo({
-            founderImageUrl: data.founderImageUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600',
-            founderName: data.founderName || 'Kalyan V., Founder of Godhara',
+            founderImageUrl: data.founderImageUrl || 'https://res.cloudinary.com/dndugbffx/image/upload/v1780725088/founder_yhmvml.jpg',
+            founderName: data.founderName || ' ., Founder of Godhara',
             founderQuote: data.founderQuote || 'Godhara was founded with a simple yet powerful vision — to bring back the purity, wisdom, and sustainability of our Indian traditions. Inspired by our cultural roots and deep respect for nature, we work closely with local artisans and Gaushalas to create natural, eco-friendly products made using time-honored practices.'
           });
         }

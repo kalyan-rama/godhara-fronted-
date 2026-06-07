@@ -20,15 +20,17 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  // isLoading ONLY means cart is syncing — never blocks product rendering
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const { isAuthenticated, apiFetch } = useAuth();
   const productsLoaded = useRef(false);
+  const cartSyncScheduled = useRef(false);
 
   // Track in-flight requests to prevent duplicates
   const pendingRequests = useRef<Map<string, Promise<void>>>(new Map());
 
-  // Load products once
+  // Load products once for cart enrichment (background, doesn't block anything)
   useEffect(() => {
     if (productsLoaded.current) return;
     productsLoaded.current = true;
@@ -38,10 +40,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       .catch(() => {});
   }, []);
 
-  // Sync cart when auth changes
+  // Sync cart in the background when auth state changes
+  // Never blocks product rendering — runs after paint
   useEffect(() => {
     if (isAuthenticated) {
-      syncCartWithDb();
+      // Defer cart load so it never delays the product render
+      if (!cartSyncScheduled.current) {
+        cartSyncScheduled.current = true;
+        // Use setTimeout(0) to push cart fetch after current render cycle
+        const timer = setTimeout(() => {
+          syncCartWithDb().finally(() => {
+            cartSyncScheduled.current = false;
+          });
+        }, 0);
+        return () => clearTimeout(timer);
+      }
     } else {
       setCart([]);
       setIsLoading(false);
@@ -53,9 +66,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (!isAuthenticated) return;
     setIsLoading(true);
     try {
+      // Use apiFetch — it handles 401 + token refresh automatically
       const res = await apiFetch('/api/cart');
+
       if (res.ok) {
         const rawItems: Array<{ productId: string; qty: number }> = await res.json();
+
+        // Use cached products if available, else fetch in background
         let products = allProducts;
         if (products.length === 0) {
           try {
@@ -66,6 +83,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             }
           } catch {}
         }
+
         const enriched: CartItem[] = rawItems
           .map(item => ({
             productId: item.productId,
@@ -73,17 +91,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             product: products.find(p => p.id === item.productId),
           }))
           .filter(item => item.product !== undefined);
+
         setCart(enriched);
       }
+      // If cart returns non-ok (including 401 after retry failed), just silently give up
+      // apiFetch already handles refresh + retry internally — if still 401, user is logged out
     } catch (err) {
-      console.error('[Cart] Sync failed:', err);
+      // Network error — silently fail, cart stays empty/stale
+      console.error('[Cart] Sync failed (background):', err);
     } finally {
       setIsLoading(false);
     }
   }, [isAuthenticated, apiFetch, allProducts]);
 
   const addToCart = useCallback(async (product: Product, qty: number = 1) => {
-    // Prevent duplicate in-flight requests for same product
     const key = `add-${product.id}`;
     if (pendingRequests.current.has(key)) {
       return pendingRequests.current.get(key);
@@ -92,7 +113,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const existing = cart.find(item => item.productId === product.id);
     const newQty = existing ? existing.qty + qty : qty;
 
-    // --- OPTIMISTIC UPDATE: apply immediately before API call ---
+    // Optimistic update — apply immediately
     setCart(prev => {
       const updated = [...prev];
       const match = updated.find(i => i.productId === product.id);
@@ -112,16 +133,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       })
         .then(async (res) => {
           if (!res.ok) {
-            // Rollback optimistic update on failure
             console.error('[Cart] addToCart API failed, rolling back');
             await syncCartWithDb();
           }
-          // Background sync to reconcile any server-side differences
           syncCartWithDb().catch(() => {});
         })
         .catch(async (err) => {
           console.error('[Cart] addToCart failed:', err);
-          // Rollback on network error
           await syncCartWithDb();
         })
         .finally(() => {
@@ -131,7 +149,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       pendingRequests.current.set(key, request);
       return request;
     }
-    // Guest: already applied optimistically above
+    // Guest: optimistic update already applied
   }, [cart, isAuthenticated, apiFetch, syncCartWithDb]);
 
   const updateCartQty = useCallback(async (productId: string, qty: number) => {
@@ -139,7 +157,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return removeFromCart(productId);
     }
 
-    // Optimistic update
     setCart(prev =>
       prev.map(item => item.productId === productId ? { ...item, qty } : item)
     );
@@ -160,7 +177,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [isAuthenticated, apiFetch, syncCartWithDb]);
 
   const removeFromCart = useCallback(async (productId: string) => {
-    // Optimistic removal
     setCart(prev => prev.filter(item => item.productId !== productId));
 
     if (isAuthenticated) {
@@ -175,7 +191,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [isAuthenticated, apiFetch, syncCartWithDb]);
 
   const clearCart = useCallback(async () => {
-    setCart([]); // Optimistic clear
+    setCart([]);
     if (isAuthenticated) {
       try {
         await apiFetch('/api/cart', { method: 'DELETE' });

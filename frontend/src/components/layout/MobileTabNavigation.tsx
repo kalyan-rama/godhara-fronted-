@@ -12,11 +12,22 @@ export default function MobileTabNavigation({ currentView, setView }: MobileTabN
   const { isAuthenticated, user } = useAuth();
   const { cartCount } = useCart();
 
-  const handleTabClick = (view: string) => {
-    setView(view);
-    window.scrollTo({ top: 0, behavior: 'instant' });
-  };
+ const handleTabClick = (view: string) => {
+  if (view === 'products') {
+    setView('home');
 
+    setTimeout(() => {
+      document
+        .getElementById('all-products-section-anchor')
+        ?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+
+    return;
+  }
+
+  setView(view);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
   const getAccountView = () => {
     return isAuthenticated ? 'orders' : 'login';
   };

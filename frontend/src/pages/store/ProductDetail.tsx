@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Product } from '../../types';
 import { useCart } from '../../context/CartContext';
-import { ShoppingCart, ArrowLeft, ShieldCheck, Heart, Leaf, HelpCircle, Check } from 'lucide-react';
+import { ShoppingCart, ArrowLeft, ShieldCheck, Heart, Leaf, HelpCircle, Check, Loader2 } from 'lucide-react';
 
 interface ProductDetailProps {
   product: Product;
@@ -11,15 +11,34 @@ interface ProductDetailProps {
 export default function ProductDetail({ product, setView }: ProductDetailProps) {
   const { addToCart } = useCart();
   const [qty, setQty] = useState(1);
-  const [added, setAdded] = useState(false);
+  const [btnState, setBtnState] = useState<'idle' | 'adding' | 'added'>('idle');
+  const isProcessing = useRef(false);
 
   const finalPrice = product.discountPrice ?? product.price;
   const hasDiscount = !!product.discountPrice;
 
   const handleAddToCart = async () => {
-    setAdded(true);
-    await addToCart(product, qty);
-    setTimeout(() => setAdded(false), 1500);
+    // Prevent duplicate clicks
+    if (isProcessing.current || btnState !== 'idle') return;
+    isProcessing.current = true;
+    setBtnState('adding');
+
+    // 1. Optimistic update — addToCart applies instantly to cart state
+    const addPromise = addToCart(product, qty);
+
+    // 2. Redirect immediately (<200ms), don't wait for API
+    //    Using a short timeout so the "Adding..." state flashes visibly, then navigate
+    setTimeout(() => {
+      setView('cart');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 120);
+
+    // 3. Let the API call complete in background
+    addPromise
+      .catch(() => {})
+      .finally(() => {
+        isProcessing.current = false;
+      });
   };
 
   return (
@@ -147,14 +166,16 @@ export default function ProductDetail({ product, setView }: ProductDetailProps) 
                 <div className="flex items-center border-2 border-[#D4B896] rounded-full h-11 bg-stone-50 overflow-hidden font-bold">
                   <button
                     onClick={() => setQty(prev => Math.max(1, prev - 1))}
-                    className="px-4 text-stone-600 hover:bg-stone-100 h-full cursor-pointer"
+                    disabled={btnState !== 'idle'}
+                    className="px-4 text-stone-600 hover:bg-stone-100 h-full cursor-pointer disabled:opacity-50"
                   >
                     -
                   </button>
                   <span className="px-3 bg-white w-10 text-center text-sm">{qty}</span>
                   <button
                     onClick={() => setQty(prev => Math.min(product.stock, prev + 1))}
-                    className="px-4 text-stone-600 hover:bg-stone-100 h-full cursor-pointer"
+                    disabled={btnState !== 'idle'}
+                    className="px-4 text-stone-600 hover:bg-stone-100 h-full cursor-pointer disabled:opacity-50"
                   >
                     +
                   </button>
@@ -162,15 +183,28 @@ export default function ProductDetail({ product, setView }: ProductDetailProps) 
 
                 <button
                   onClick={handleAddToCart}
-                  disabled={added}
-                  className="flex-1 bg-[#6B2D0E] hover:bg-[#E8820C] disabled:bg-green-700 text-white font-bold h-11 px-8 rounded-full flex items-center justify-center gap-2.5 shadow hover:shadow-md transition-all cursor-pointer"
+                  disabled={btnState !== 'idle'}
+                  aria-busy={btnState === 'adding'}
+                  className={`flex-1 text-white font-bold h-11 px-8 rounded-full flex items-center justify-center gap-2.5 shadow hover:shadow-md transition-all cursor-pointer select-none
+                    ${btnState === 'idle' ? 'bg-[#6B2D0E] hover:bg-[#E8820C]' : ''}
+                    ${btnState === 'adding' ? 'bg-[#E8820C] cursor-not-allowed opacity-90' : ''}
+                    ${btnState === 'added' ? 'bg-green-700 cursor-not-allowed' : ''}
+                    disabled:cursor-not-allowed
+                  `}
                 >
-                  {added ? (
+                  {btnState === 'adding' && (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Adding...
+                    </>
+                  )}
+                  {btnState === 'added' && (
                     <>
                       <Check size={18} strokeWidth={2.5} />
                       Added {qty} to Cart!
                     </>
-                  ) : (
+                  )}
+                  {btnState === 'idle' && (
                     <>
                       <ShoppingCart size={18} />
                       Add to Cart (₹{(finalPrice * qty).toLocaleString()})
@@ -191,4 +225,3 @@ export default function ProductDetail({ product, setView }: ProductDetailProps) 
     </div>
   );
 }
-

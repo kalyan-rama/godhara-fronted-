@@ -20,6 +20,7 @@ import { motion, AnimatePresence } from 'motion/react';
 interface HomeProps {
   products: Product[];
   categories: string[];
+  productsLoading?: boolean;
   setView: (v: string) => void;
   setSelectedProduct: (p: Product) => void;
   initialCategory?: string;
@@ -44,7 +45,43 @@ const HERO_SLIDES = [
   }
 ];
 
-export default function Home({ products, categories, setView, setSelectedProduct, initialCategory = 'All', initialSearchQuery = '' }: HomeProps) {
+
+// ── Product Skeleton ────────────────────────────────────────────────────
+function ProductSkeleton() {
+  return (
+    <div className="bg-white border border-[#D4B896]/55 rounded-lg overflow-hidden flex flex-col animate-pulse">
+      <div className="aspect-square bg-stone-200" />
+      <div className="p-2.5 sm:p-4 flex flex-col gap-2">
+        <div className="h-2.5 bg-stone-200 rounded w-1/3" />
+        <div className="h-3.5 bg-stone-200 rounded w-4/5" />
+        <div className="h-3 bg-stone-100 rounded w-2/3" />
+        <div className="mt-2 pt-2 border-t border-stone-100 flex items-center justify-between">
+          <div className="h-4 bg-stone-200 rounded w-1/4" />
+          <div className="h-7 w-7 rounded-full bg-stone-200" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FeaturedSkeleton() {
+  return (
+    <div className="min-w-[280px] sm:min-w-[320px] bg-white border border-[#D4B896]/70 rounded-lg overflow-hidden flex flex-col animate-pulse">
+      <div className="aspect-square bg-stone-200" />
+      <div className="p-5 flex flex-col gap-3">
+        <div className="h-2.5 bg-stone-200 rounded w-1/4" />
+        <div className="h-4 bg-stone-200 rounded w-3/4" />
+        <div className="h-3 bg-stone-100 rounded w-full" />
+        <div className="mt-3 pt-3 border-t border-stone-100 flex items-center justify-between">
+          <div className="h-5 bg-stone-200 rounded w-1/4" />
+          <div className="h-8 bg-stone-200 rounded-full w-24" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function Home({ products, categories, productsLoading = false, setView, setSelectedProduct, initialCategory = 'All', initialSearchQuery = '' }: HomeProps) {
   const { addToCart } = useCart();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
@@ -263,7 +300,7 @@ export default function Home({ products, categories, setView, setSelectedProduct
       </div>
 
       {/* SECTION 3: FEATURED PRODUCTS HEADER & HORIZONTAL CARDS */}
-      {featuredList.length > 0 && (
+      {(productsLoading || featuredList.length > 0) && (
         <section className="py-16 bg-white/40 border-b border-[#D4B896] select-none">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-10">
@@ -280,7 +317,9 @@ export default function Home({ products, categories, setView, setSelectedProduct
 
             {/* Desktop grid, mobile horizontal scroll */}
             <div className="flex gap-6 overflow-x-auto pb-6 scrollbar-thin scrollbar-thumb-amber-700 md:grid md:grid-cols-2 lg:grid-cols-3 md:overflow-x-visible md:pb-0">
-              {featuredList.map(product => {
+              {productsLoading
+                ? Array.from({ length: 3 }).map((_, i) => <FeaturedSkeleton key={i} />)
+                : featuredList.map(product => {
                 const finalPrice = product.discountPrice ?? product.price;
                 const hasDiscount = !!product.discountPrice;
 
@@ -432,7 +471,14 @@ export default function Home({ products, categories, setView, setSelectedProduct
         </div>
 
         {/* Catalog grid renderer */}
-        {sortedProducts.length === 0 ? (
+        {productsLoading ? (
+          /* Skeleton grid — shown immediately while /api/products is in-flight */
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <ProductSkeleton key={i} />
+            ))}
+          </div>
+        ) : sortedProducts.length === 0 ? (
           <div className="text-center py-20 bg-white/50 rounded-xl border border-dashed border-[#D4B896]">
             <p className="text-stone-400 font-serif text-lg">No pure creations found matching these criteria</p>
             <button

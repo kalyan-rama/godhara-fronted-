@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
-import { ShoppingBag, Trash2, ArrowRight, ShieldAlert, Truck } from 'lucide-react';
+import { ShoppingBag, Trash2, ArrowRight, ShieldAlert, Truck, Loader2 } from 'lucide-react';
 import API_URL from '../../api';
 
 interface CartProps {
@@ -9,25 +9,21 @@ interface CartProps {
 }
 
 export default function Cart({ setView }: CartProps) {
-  const { cart, cartSubtotal, cartCount, cartWeight, updateCartQty, removeFromCart } = useCart();
+  const { cart, cartSubtotal, cartCount, cartWeight, updateCartQty, removeFromCart, isLoading } = useCart();
   const { user } = useAuth();
 
   const [freeThreshold, setFreeThreshold] = useState(1000);
   const [deliveryCharge, setDeliveryCharge] = useState(100);
 
   useEffect(() => {
-    // Load base delivery settings
     fetch(`${API_URL}/api/settings`)
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (data) {
-          if (data.freeShippingThreshold !== undefined) setFreeThreshold(data.freeShippingThreshold);
-        }
+        if (data?.freeShippingThreshold !== undefined) setFreeThreshold(data.freeShippingThreshold);
       })
       .catch(() => {});
   }, []);
 
-  // Recalculate delivery when cart, user address or threshold changes
   useEffect(() => {
     const pincode = user?.address?.pincode || '';
     const state = user?.address?.state || 'Telangana';
@@ -43,9 +39,7 @@ export default function Cart({ setView }: CartProps) {
       body: JSON.stringify({ pincode, state })
     })
       .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data) setDeliveryCharge(data.deliveryCharge);
-      })
+      .then(data => { if (data) setDeliveryCharge(data.deliveryCharge); })
       .catch(() => {});
   }, [cartSubtotal, freeThreshold, user]);
 
@@ -56,6 +50,24 @@ export default function Cart({ setView }: CartProps) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // --- LOADING STATE ---
+  if (isLoading) {
+    return (
+      <div className="bg-[#F5EFE6] min-h-screen flex flex-col items-center justify-center gap-4 select-none">
+        <div className="relative">
+          <div className="w-14 h-14 rounded-full border-4 border-[#D4B896]/40 border-t-[#6B2D0E] animate-spin" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <ShoppingBag size={18} className="text-[#E8820C]" />
+          </div>
+        </div>
+        <p className="text-[#6B2D0E] font-semibold text-sm tracking-wide animate-pulse">
+          Loading your cart...
+        </p>
+      </div>
+    );
+  }
+
+  // --- EMPTY STATE ---
   if (cart.length === 0) {
     return (
       <div className="bg-[#F5EFE6] text-[#2C1810] font-sans min-h-screen py-16 flex items-center justify-center select-none">
@@ -78,6 +90,7 @@ export default function Cart({ setView }: CartProps) {
     );
   }
 
+  // --- LOADED CART ---
   return (
     <div className="bg-[#F5EFE6] text-[#2C1810] font-sans min-h-screen py-12 select-none">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
@@ -88,7 +101,7 @@ export default function Cart({ setView }: CartProps) {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {/* LEFT: CART ITEMS ITEMS */}
+          {/* LEFT: CART ITEMS */}
           <div className="lg:col-span-8 flex flex-col gap-4">
             {cart.map(item => {
               if (!item.product) return null;
@@ -100,7 +113,7 @@ export default function Cart({ setView }: CartProps) {
                   key={product.id}
                   className="bg-white border border-[#D4B896]/40 p-4 rounded-xl flex items-center gap-4 hover:shadow-sm transition-all"
                 >
-                  <div className="h-20 w-20 sm:h-24 sm:w-24 bg-stone-50 rounded-lg overflow-hidden border border-now-100 shrink-0">
+                  <div className="h-20 w-20 sm:h-24 sm:w-24 bg-stone-50 rounded-lg overflow-hidden border border-stone-100 shrink-0">
                     <img src={product.images?.[0] || '/logo.png'} alt={product.name} className="w-full h-full object-cover" />
                   </div>
 
@@ -153,10 +166,10 @@ export default function Cart({ setView }: CartProps) {
             })}
           </div>
 
-          {/* RIGHT: PRICING SUMMARIES CARD */}
+          {/* RIGHT: PRICING SUMMARY */}
           <div className="lg:col-span-4 flex flex-col gap-5">
             
-            {/* Free Shipping Progress Alert */}
+            {/* Free Shipping Progress */}
             <div className="bg-white border border-[#D4B896] rounded-xl p-5 shadow-sm overflow-hidden relative">
               <div className="flex items-start gap-3">
                 <div className={`p-2 rounded-full shrink-0 ${cartSubtotal >= freeThreshold ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
@@ -172,14 +185,12 @@ export default function Cart({ setView }: CartProps) {
                     <>
                       <h4 className="text-xs font-bold text-amber-800 uppercase tracking-wider">Free Shipping Progress Bar</h4>
                       <p className="text-[11px] text-stone-500 mt-1 leading-snug">
-                        Add <span className="font-bold text-[#6B2D0E]">₹{(freeThreshold - cartSubtotal).toLocaleString()}</span> more to your cart to unlock free delivery!
+                        Add <span className="font-bold text-[#6B2D0E]">₹{(freeThreshold - cartSubtotal).toLocaleString()}</span> more to unlock free delivery!
                       </p>
-                      
-                      {/* Percent Slider indicator */}
                       <div className="w-full bg-stone-100 h-2 rounded-full mt-3 overflow-hidden">
                         <div
                           className="bg-[#E8820C] h-full rounded-full transition-all duration-300"
-                          style={{ width: `${(cartSubtotal / freeThreshold) * 100}%` }}
+                          style={{ width: `${Math.min((cartSubtotal / freeThreshold) * 100, 100)}%` }}
                         />
                       </div>
                     </>
@@ -188,7 +199,7 @@ export default function Cart({ setView }: CartProps) {
               </div>
             </div>
 
-            {/* Financial Overview Card */}
+            {/* Order Summary */}
             <div className="bg-white border border-[#D4B896] rounded-xl p-6 shadow-sm">
               <h3 className="font-serif text-lg font-bold text-[#6B2D0E] border-b border-stone-100 pb-3 mb-4">
                 Order Invoice Summary
@@ -225,7 +236,6 @@ export default function Cart({ setView }: CartProps) {
                 </div>
               </div>
 
-              {/* Secure Trust Badge */}
               <div className="mt-4 p-3 bg-stone-50 rounded-lg border border-stone-100 flex items-center gap-2.5 text-[10px] text-stone-500">
                 <ShieldAlert size={16} className="text-[#E8820C]" />
                 <span>GST 5% is fully included in the items listed above. Zero surprise margins!</span>

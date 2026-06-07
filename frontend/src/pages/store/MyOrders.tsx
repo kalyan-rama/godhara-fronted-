@@ -23,7 +23,6 @@ export default function MyOrders({ setView }: MyOrdersProps) {
         const res = await apiFetch(`/api/orders/my`);
         if (res.ok) {
           const list = await res.json();
-          // Sort newest first
           list.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
           setOrders(list);
         }
@@ -40,7 +39,7 @@ export default function MyOrders({ setView }: MyOrdersProps) {
     window.open(`${API_URL}/api/orders/${orderId}/invoice`, '_blank');
   };
 
-  const statusColors = {
+  const statusColors: Record<string, string> = {
     PENDING: 'bg-amber-100 text-amber-800 border-amber-200',
     CONFIRMED: 'bg-blue-100 text-blue-800 border-blue-200',
     SHIPPED: 'bg-purple-100 text-purple-800 border-purple-200',
@@ -48,6 +47,7 @@ export default function MyOrders({ setView }: MyOrdersProps) {
     CANCELLED: 'bg-red-100 text-red-800 border-red-200',
   };
 
+  // --- NOT AUTHENTICATED ---
   if (!isAuthenticated) {
     return (
       <div className="bg-[#F5EFE6] text-[#2C1810] font-sans min-h-screen py-16 flex items-center justify-center select-none">
@@ -74,13 +74,21 @@ export default function MyOrders({ setView }: MyOrdersProps) {
           My Ancient Seva Orders
         </h1>
 
+        {/* --- LOADING STATE --- */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center min-h-[60vh] animate-fadeIn">
-            <div className="w-12 h-12 border-4 border-[#E8820C]/30 border-t-[#6B2D0E] rounded-full animate-spin"></div>
-            <p className="mt-4 text-[#6B2D0E] font-medium">
-              Loading Godhara...
+          <div className="flex flex-col items-center justify-center min-h-[55vh]">
+            <div className="relative">
+              <div className="w-14 h-14 rounded-full border-4 border-[#D4B896]/40 border-t-[#6B2D0E] animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <ClipboardList size={18} className="text-[#E8820C]" />
+              </div>
+            </div>
+            <p className="mt-4 text-[#6B2D0E] font-semibold text-sm tracking-wide animate-pulse">
+              Loading your orders...
             </p>
           </div>
+
+        /* --- EMPTY STATE --- */
         ) : orders.length === 0 ? (
           <div className="text-center py-20 bg-white border border-[#D4B896]/50 rounded-2xl p-6 shadow-sm">
             <div className="h-16 w-16 mx-auto bg-stone-50 text-stone-300 rounded-full flex items-center justify-center mb-4">
@@ -98,6 +106,8 @@ export default function MyOrders({ setView }: MyOrdersProps) {
               Browse Traditional Items
             </button>
           </div>
+
+        /* --- ORDERS LIST --- */
         ) : (
           <div className="flex flex-col gap-6">
             {orders.map(order => (

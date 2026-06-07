@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { Product } from './types';
@@ -42,7 +42,9 @@ function StorefrontApp() {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  // productsLoading: true only while the first fetch is in-flight
+  // Does NOT block render — Home handles its own skeleton
+  const [productsLoading, setProductsLoading] = useState<boolean>(true);
   
   // Navigation states
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -50,9 +52,9 @@ function StorefrontApp() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
-  // Security guard effect to redirect unauthenticated attempts to access admin view
+  // Security guard — only fires after products are known (non-blocking)
   useEffect(() => {
-    if (currentView === 'admin' && !loading) {
+    if (currentView === 'admin' && !productsLoading) {
       const storedUser = localStorage.getItem('gdh_user');
       const storedToken = localStorage.getItem('gdh_token');
       let authedAdmin = false;
@@ -68,27 +70,27 @@ function StorefrontApp() {
         setView('home');
       }
     }
-  }, [currentView, loading]);
+  }, [currentView, productsLoading]);
 
-  // Load database catalogues
-  const fetchInventory = async () => {
+  // Load products IMMEDIATELY — completely independent of auth/cart
+  const fetchInventory = useCallback(async () => {
     try {
       const res = await fetch(`${API_URL}/api/products`);
       if (res.ok) {
         const list = await res.json();
         setProducts(list);
-        
-        // Extract distinct lists of active categories
         const uniqCats = Array.from(new Set(list.map((item: Product) => item.category))) as string[];
         setCategories(uniqCats);
       }
     } catch (err) {
-      console.error('Failed downloading Gau seed collections:', err);
+      console.error('Failed downloading product catalogue:', err);
     } finally {
-      setLoading(false);
+      // Always clear loading so UI unblocks even on error
+      setProductsLoading(false);
     }
-  };
+  }, []);
 
+  // Fire ONCE on mount — no auth dependency
   useEffect(() => {
     fetchInventory();
   }, []);
@@ -105,13 +107,11 @@ function StorefrontApp() {
     setView('products');
   };
 
-  // Skip headers/footers in Admin view layout
   const isAdminView = currentView === 'admin';
 
   return (
     <div className={`flex flex-col min-h-screen bg-[#F5EFE6] select-none text-[#2C1810] ${!isAdminView ? 'pb-16 md:pb-0' : ''}`}>
       
-      {/* 1. Header layouts */}
       {!isAdminView && (
         <>
           <AnnouncementBar />
@@ -123,94 +123,86 @@ function StorefrontApp() {
         </>
       )}
 
-      {/* 2. Primary dynamic viewport router */}
+      {/* Render immediately — no global loading gate */}
       <main className="flex-grow">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center min-h-[60vh] animate-fadeIn">
-            <div className="w-12 h-12 border-4 border-[#E8820C]/30 border-t-[#6B2D0E] rounded-full animate-spin"></div>
-            <p className="mt-4 text-[#6B2D0E] font-medium">
-              Loading Godhara...
-            </p>
-          </div>
-        ) : (
-          (() => {
-            switch (currentView) {
-              case 'home':
-                return (
-                  <Home 
-                    products={products}
-                    categories={categories}
-                    setView={setView}
-                    setSelectedProduct={setSelectedProduct}
-                    initialCategory="All"
-                    initialSearchQuery=""
-                  />
-                );
-              case 'products':
-                return (
-                  <Home 
-                    products={products}
-                    categories={categories}
-                    setView={setView}
-                    setSelectedProduct={setSelectedProduct}
-                    initialCategory={selectedCategory}
-                    initialSearchQuery={searchQuery}
-                  />
-                );
-              case 'detail':
-                return selectedProduct ? (
-                  <ProductDetail 
-                    product={selectedProduct} 
-                    setView={setView} 
-                  />
-                ) : (
-                  <div className="py-20 text-center text-xs">No active product detail found.</div>
-                );
-              case 'cart':
-                return <Cart setView={setView} />;
-              case 'checkout':
-                return (
-                  <Checkout 
-                    setView={setView} 
-                    setCompletedOrder={setCompletedOrder} 
-                  />
-                );
-              case 'orderConfirm':
-                return (
-                  <OrderConfirm 
-                    order={completedOrder} 
-                    setView={setView} 
-                  />
-                );
-              case 'orders':
-                return <MyOrders setView={setView} />;
-              case 'login':
+        {(() => {
+          switch (currentView) {
+            case 'home':
+              return (
+                <Home 
+                  products={products}
+                  categories={categories}
+                  productsLoading={productsLoading}
+                  setView={setView}
+                  setSelectedProduct={setSelectedProduct}
+                  initialCategory="All"
+                  initialSearchQuery=""
+                />
+              );
+            case 'products':
+              return (
+                <Home 
+                  products={products}
+                  categories={categories}
+                  productsLoading={productsLoading}
+                  setView={setView}
+                  setSelectedProduct={setSelectedProduct}
+                  initialCategory={selectedCategory}
+                  initialSearchQuery={searchQuery}
+                />
+              );
+            case 'detail':
+              return selectedProduct ? (
+                <ProductDetail 
+                  product={selectedProduct} 
+                  setView={setView} 
+                />
+              ) : (
+                <div className="py-20 text-center text-xs">No active product detail found.</div>
+              );
+            case 'cart':
+              return <Cart setView={setView} />;
+            case 'checkout':
+              return (
+                <Checkout 
+                  setView={setView} 
+                  setCompletedOrder={setCompletedOrder} 
+                />
+              );
+            case 'orderConfirm':
+              return (
+                <OrderConfirm 
+                  order={completedOrder} 
+                  setView={setView} 
+                />
+              );
+            case 'orders':
+              return <MyOrders setView={setView} />;
+            case 'login':
+              return <Login setView={setView} />;
+            case 'register':
+              return <Register setView={setView} />;
+            case 'admin':
+              if (!isAdmin) {
                 return <Login setView={setView} />;
-              case 'register':
-                return <Register setView={setView} />;
-              case 'admin':
-                if (!isAdmin) {
-                  return <Login setView={setView} />;
-                }
-                return (
-                  <AdminConsole 
-                    setView={setView} 
-                    products={products} 
-                    refreshProducts={fetchInventory} 
-                  />
-                );
-              default:
-                return (
-                  <div className="py-20 text-center font-serif text-[#6B2D0E] font-bold">
-                    View &quot;{currentView}&quot; is currently compiling.
-                  </div>
-                );
-            }
-          })()
-        )}
+              }
+              return (
+                <AdminConsole 
+                  setView={setView} 
+                  products={products} 
+                  refreshProducts={fetchInventory} 
+                />
+              );
+            default:
+              return (
+                <div className="py-20 text-center font-serif text-[#6B2D0E] font-bold">
+                  View &quot;{currentView}&quot; is currently compiling.
+                </div>
+              );
+          }
+        })()}
       </main>
 
-      {/* 3. Footer layout */}
       {!isAdminView && (
         <>
           <Footer 

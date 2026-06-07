@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { CartItem, Product } from '../types';
 import { useAuth } from './AuthContext';
 import API_URL from '../api';
@@ -25,6 +25,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, apiFetch } = useAuth();
   const productsLoaded = useRef(false);
 
+  // Track in-flight requests to prevent duplicates
+  const pendingRequests = useRef<Map<string, Promise<void>>>(new Map());
+
   // Load products once
   useEffect(() => {
     if (productsLoaded.current) return;
@@ -46,14 +49,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
-  const syncCartWithDb = async () => {
+  const syncCartWithDb = useCallback(async () => {
     if (!isAuthenticated) return;
     setIsLoading(true);
     try {
       const res = await apiFetch('/api/cart');
       if (res.ok) {
         const rawItems: Array<{ productId: string; qty: number }> = await res.json();
-        // Fetch latest products if we don't have them yet
         let products = allProducts;
         if (products.length === 0) {
           try {
@@ -78,85 +80,110 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isAuthenticated, apiFetch, allProducts]);
 
-  const addToCart = async (product: Product, qty: number = 1) => {
+  const addToCart = useCallback(async (product: Product, qty: number = 1) => {
+    // Prevent duplicate in-flight requests for same product
+    const key = `add-${product.id}`;
+    if (pendingRequests.current.has(key)) {
+      return pendingRequests.current.get(key);
+    }
+
     const existing = cart.find(item => item.productId === product.id);
     const newQty = existing ? existing.qty + qty : qty;
 
-    if (isAuthenticated) {
-      try {
-        await apiFetch(`/api/cart/${product.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ qty: newQty }),
-        });
-        await syncCartWithDb();
-      } catch (err) {
-        console.error('[Cart] addToCart failed:', err);
+    // --- OPTIMISTIC UPDATE: apply immediately before API call ---
+    setCart(prev => {
+      const updated = [...prev];
+      const match = updated.find(i => i.productId === product.id);
+      if (match) {
+        match.qty = newQty;
+        return [...updated];
+      } else {
+        return [...updated, { productId: product.id, qty, product }];
       }
-    } else {
-      setCart(prev => {
-        const updated = [...prev];
-        const match = updated.find(i => i.productId === product.id);
-        if (match) {
-          match.qty = newQty;
-        } else {
-          updated.push({ productId: product.id, qty, product });
-        }
-        return updated;
-      });
-    }
-  };
+    });
 
-  const updateCartQty = async (productId: string, qty: number) => {
+    if (isAuthenticated) {
+      const request = apiFetch(`/api/cart/${product.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ qty: newQty }),
+      })
+        .then(async (res) => {
+          if (!res.ok) {
+            // Rollback optimistic update on failure
+            console.error('[Cart] addToCart API failed, rolling back');
+            await syncCartWithDb();
+          }
+          // Background sync to reconcile any server-side differences
+          syncCartWithDb().catch(() => {});
+        })
+        .catch(async (err) => {
+          console.error('[Cart] addToCart failed:', err);
+          // Rollback on network error
+          await syncCartWithDb();
+        })
+        .finally(() => {
+          pendingRequests.current.delete(key);
+        });
+
+      pendingRequests.current.set(key, request);
+      return request;
+    }
+    // Guest: already applied optimistically above
+  }, [cart, isAuthenticated, apiFetch, syncCartWithDb]);
+
+  const updateCartQty = useCallback(async (productId: string, qty: number) => {
     if (qty <= 0) {
       return removeFromCart(productId);
     }
+
+    // Optimistic update
+    setCart(prev =>
+      prev.map(item => item.productId === productId ? { ...item, qty } : item)
+    );
+
     if (isAuthenticated) {
       try {
-        await apiFetch(`/api/cart/${productId}`, {
+        const res = await apiFetch(`/api/cart/${productId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ qty }),
         });
-        await syncCartWithDb();
+        if (!res.ok) await syncCartWithDb();
       } catch (err) {
         console.error('[Cart] updateQty failed:', err);
+        await syncCartWithDb();
       }
-    } else {
-      setCart(prev =>
-        prev.map(item => item.productId === productId ? { ...item, qty } : item)
-      );
     }
-  };
+  }, [isAuthenticated, apiFetch, syncCartWithDb]);
 
-  const removeFromCart = async (productId: string) => {
+  const removeFromCart = useCallback(async (productId: string) => {
+    // Optimistic removal
+    setCart(prev => prev.filter(item => item.productId !== productId));
+
     if (isAuthenticated) {
       try {
-        await apiFetch(`/api/cart/${productId}`, { method: 'DELETE' });
-        await syncCartWithDb();
+        const res = await apiFetch(`/api/cart/${productId}`, { method: 'DELETE' });
+        if (!res.ok) await syncCartWithDb();
       } catch (err) {
         console.error('[Cart] remove failed:', err);
+        await syncCartWithDb();
       }
-    } else {
-      setCart(prev => prev.filter(item => item.productId !== productId));
     }
-  };
+  }, [isAuthenticated, apiFetch, syncCartWithDb]);
 
-  const clearCart = async () => {
+  const clearCart = useCallback(async () => {
+    setCart([]); // Optimistic clear
     if (isAuthenticated) {
       try {
-        // Use DELETE /api/cart to clear all items
         await apiFetch('/api/cart', { method: 'DELETE' });
-        setCart([]);
       } catch (err) {
         console.error('[Cart] clear failed:', err);
       }
-    } else {
-      setCart([]);
     }
-  };
+  }, [isAuthenticated, apiFetch]);
 
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
   const cartSubtotal = cart.reduce((s, i) => {

@@ -42,11 +42,11 @@ export default function OrderConfirm({ order, setView }: OrderConfirmProps) {
           </p>
           
           <h1 className="font-serif text-2xl sm:text-3xl font-black text-[#6B2D0E] mt-1 leading-tight">
-            Thank You For Supporting Gau Seva!
+            Thank You For Supporting !
           </h1>
           
           <p className="text-stone-500 text-xs mt-3 leading-relaxed max-w-md">
-            Your e-commerce purchase has been logged. Stock has been atomically deducted, and local Gaushalas are compiling your pack list. An email has been sent to you with your official attached receipt.
+            Your e-commerce purchase has been logged. Stock has been atomically deducted, t. An email has been sent to you with your official attached receipt.
           </p>
 
           {/* Quick Invoice Details Box */}

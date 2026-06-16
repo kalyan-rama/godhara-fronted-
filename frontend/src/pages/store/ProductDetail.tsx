@@ -162,8 +162,8 @@ export default function ProductDetail({ product, setView }: ProductDetailProps) 
 
             {/* ACTION FOOTER */}
             {product.stock > 0 ? (
-              <div className="flex items-center gap-4">
-                <div className="flex items-center border-2 border-[#D4B896] rounded-full h-11 bg-stone-50 overflow-hidden font-bold">
+              <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
+                <div className="flex items-center border-2 border-[#D4B896] rounded-full h-11 bg-stone-50 overflow-hidden font-bold shrink-0">
                   <button
                     onClick={() => setQty(prev => Math.max(1, prev - 1))}
                     disabled={btnState !== 'idle'}
@@ -185,7 +185,7 @@ export default function ProductDetail({ product, setView }: ProductDetailProps) 
                   onClick={handleAddToCart}
                   disabled={btnState !== 'idle'}
                   aria-busy={btnState === 'adding'}
-                  className={`flex-1 text-white font-bold h-11 px-8 rounded-full flex items-center justify-center gap-2.5 shadow hover:shadow-md transition-all cursor-pointer select-none
+                  className={`w-full sm:w-auto sm:flex-1 text-white font-bold h-11 px-8 rounded-full flex items-center justify-center gap-2.5 shadow hover:shadow-md transition-all cursor-pointer select-none
                     ${btnState === 'idle' ? 'bg-[#6B2D0E] hover:bg-[#E8820C]' : ''}
                     ${btnState === 'adding' ? 'bg-[#E8820C] cursor-not-allowed opacity-90' : ''}
                     ${btnState === 'added' ? 'bg-green-700 cursor-not-allowed' : ''}

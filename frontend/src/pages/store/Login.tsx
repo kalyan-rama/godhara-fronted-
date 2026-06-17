@@ -325,7 +325,7 @@ export default function Login({ setView }: LoginProps) {
         {mode === 'LOGIN' && (
           <>
             <h2 className="font-serif text-2xl font-bold text-[#6B2D0E] mb-1">Sign In To Godhara</h2>
-            <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mb-8">పోధార - Vedic Cattle Care</p>
+            <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mb-8">గోధార - Vedic Cattle Care</p>
           </>
         )}
         {mode === 'OTP_CHALLENGE' && (

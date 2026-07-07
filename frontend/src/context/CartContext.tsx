@@ -203,7 +203,7 @@ async function runCartSync(
     let products = allProductsRef.current;
     if (products.length === 0) {
       try {
-        const pr = await fetch(`${(window as any).__API_URL__ ?? ''}${API_URL}/api/products`);
+        const pr = await fetch(`${API_URL}/api/products`);
         if (pr.ok) {
           products = await pr.json();
           setAllProducts(products);

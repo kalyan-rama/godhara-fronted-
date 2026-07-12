@@ -362,6 +362,11 @@ export default function Home({ products, categories, productsLoading = false, se
                         <h3 className="font-serif text-base font-bold text-[#2C1810] hover:text-[#6B2D0E] transition-colors mt-0.5 min-h-[48px] line-clamp-2 leading-tight">
                           {product.name}
                         </h3>
+                        {product.packageSize && (
+                          <p className="text-[10px] text-stone-400 font-sans tracking-tight mt-0.5">
+                            <span className="uppercase font-bold text-stone-400">Package Size:</span> {product.packageSize}
+                          </p>
+                        )}
                         <p className="text-xs text-stone-500 mt-1 line-clamp-2">
                           {product.description}
                         </p>
@@ -377,7 +382,6 @@ export default function Home({ products, categories, productsLoading = false, se
                           ) : (
                             <span className="text-lg font-bold text-[#6B2D0E]">₹{product.price}</span>
                           )}
-                          <span className="text-[9px] text-stone-400 font-sans tracking-tight mt-0.5">({product.weight}g Unit Net Content)</span>
                         </div>
 
                         {product.stock > 0 ? (
@@ -536,6 +540,11 @@ export default function Home({ products, categories, productsLoading = false, se
                       <h3 className="font-serif text-xs sm:text-sm font-semibold text-[#2C1810] leading-tight hover:text-[#E8820C] mt-0.5 min-h-[32px] sm:min-h-[40px] line-clamp-2">
                         {product.name}
                       </h3>
+                      {product.packageSize && (
+                        <p className="text-[7px] sm:text-[8px] text-stone-400 mt-0.5">
+                          <span className="uppercase font-bold text-stone-400">Package Size:</span> {product.packageSize}
+                        </p>
+                      )}
                     </div>
 
                     <div className="mt-2 sm:mt-3 pt-2 border-t border-stone-100 flex items-center justify-between">
@@ -548,7 +557,6 @@ export default function Home({ products, categories, productsLoading = false, se
                         ) : (
                           <span className="text-sm sm:text-base font-bold text-[#6B2D0E]">₹{product.price}</span>
                         )}
-                        <span className="text-[7px] sm:text-[8px] text-stone-400">({product.weight}g)</span>
                       </div>
 
                       {product.stock > 0 ? (

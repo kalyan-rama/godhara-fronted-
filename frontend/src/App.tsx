@@ -222,10 +222,24 @@ function StorefrontApp() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <CartProvider>
-        <StorefrontApp />
-      </CartProvider>
-    </AuthProvider>
+    <div className="min-h-screen flex items-center justify-center bg-orange-50 px-6">
+      <div className="bg-white p-10 rounded-2xl shadow-xl text-center max-w-lg">
+        <h1 className="text-4xl font-bold text-orange-600 mb-4">🚧 Website Under Maintenance</h1>
+
+        <p className="text-gray-600 mb-6">
+          We are currently updating our website.
+          <br />
+          Please wait for some time.
+        </p>
+
+        <a
+          href="https://wa.me/917661055143?text=Hi%20Godhara,%20I%20need%20help."
+          className="bg-green-600 text-white px-6 py-3 rounded-lg inline-block"
+        >
+          Contact on WhatsApp
+        </a>
+      </div>
+    </div>
   );
+
 }

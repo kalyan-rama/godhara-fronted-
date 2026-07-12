@@ -133,10 +133,10 @@ export default function ProductDetail({ product, setView }: ProductDetailProps) 
                 )}
               </div>
 
-              {/* Description */}
-              <p className="text-stone-600 text-sm leading-relaxed mb-6 font-sans">
-                {product.description}
-              </p>
+             {/* Description */}
+<p className="text-stone-600 text-sm leading-relaxed mb-6 font-sans whitespace-pre-line">
+  {product.description}
+</p>
 
               {/* Traditional attributes benefits bullet points */}
               <div className="border-t border-b border-stone-100 py-4 mb-6 grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs text-stone-600 select-none">

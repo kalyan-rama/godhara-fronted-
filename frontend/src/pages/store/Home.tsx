@@ -29,7 +29,7 @@ interface HomeProps {
 
 const HERO_SLIDES = [
   {
-    image: 'https://res.cloudinary.com/dndugbffx/image/upload/v1780724225/godhara_products/fgs0kxssim6nq7s1dzbv.jpg',
+    image: 'https://res.cloudinary.com/dndugbffx/image/upload/v1782876555/godhara_products/o4bevabcgdcks5xf7bm5.jpg',
     tagline: 'Panchagavya Dhoop Sticks',
     description: 'Made from desi cow dung & natural herbal ingredients.'
   },

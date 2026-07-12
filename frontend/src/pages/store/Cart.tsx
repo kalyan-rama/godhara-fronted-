@@ -123,7 +123,9 @@ export default function Cart({ setView }: CartProps) {
                       <h3 className="font-serif text-sm sm:text-base font-bold text-[#2C1810] leading-tight mt-0.5 line-clamp-1">
                         {product.name}
                       </h3>
-                      <p className="text-xs text-stone-400 mt-1">({product.weight}g net weight)</p>
+                      {product.packageSize && (
+                        <p className="text-xs text-stone-400 mt-1">Package Size: {product.packageSize}</p>
+                      )}
                       
                       <div className="flex items-center gap-4 mt-3">
                         <div className="flex items-center border border-[#D4B896] rounded-full h-8 bg-stone-50 font-bold text-xs">

@@ -178,8 +178,48 @@ export default function Home({ products, categories, productsLoading = false, se
     setView('detail');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+  return (
+  <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center px-6">
+    <div className="max-w-xl w-full bg-white rounded-2xl shadow-xl p-10 text-center border border-orange-200">
+      <div className="text-6xl mb-4">🚧</div>
+
+      <h1 className="text-3xl font-bold text-[#6B2D0E] mb-4">
+        Website Under Maintenance
+      </h1>
+
+      <p className="text-gray-600 leading-7 mb-8">
+        We are currently updating our website to provide you with a better shopping experience.
+        <br />
+        Please wait for a short while and visit again.
+      </p>
+
+      <div className="space-y-3">
+        <a
+          href="https://wa.me/917661055143?text=Hi%20Godhara,%20I%20need%20assistance."
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition"
+        >
+          💬 Contact us on WhatsApp
+        </a>
+
+        <a
+          href="tel:+917661055143"
+          className="block w-full bg-[#6B2D0E] hover:bg-[#8B4513] text-white font-semibold py-3 rounded-lg transition"
+        >
+          📞 Call: +91 76610 55143
+        </a>
+      </div>
+
+      <p className="mt-8 text-sm text-gray-500">
+        Thank you for your patience and support. ❤️
+      </p>
+    </div>
+  </div>
+);
 
   return (
+    
     <div className="bg-[#F5EFE6] text-[#2C1810] font-sans min-h-screen">
       
       {/* SECTION 1: HERO BANNER SLIDER */}

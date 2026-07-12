@@ -154,6 +154,8 @@ export default function Checkout({ setView, setCompletedOrder }: CheckoutProps) 
           name: item.product?.name || 'Sourced Product',
           qty: item.qty,
           unitPrice: item.product?.discountPrice ?? item.product?.price ?? 0,
+          packageSize: item.product?.packageSize || '',
+          // Legacy logistics-only field, kept for shipping weight calculations.
           weight: item.product?.weight || 250
         })),
         subtotal: cartSubtotal,
@@ -441,6 +443,9 @@ export default function Checkout({ setView, setCompletedOrder }: CheckoutProps) 
                   <div key={item.productId} className="flex justify-between items-start gap-4 text-xs">
                     <div className="flex-1">
                       <p className="font-semibold text-[#2C1810] line-clamp-1">{item.product?.name}</p>
+                      {item.product?.packageSize && (
+                        <p className="text-[10px] text-stone-400 mt-0.5">Package Size: {item.product.packageSize}</p>
+                      )}
                       <p className="text-[10px] text-stone-400 mt-0.5">₹{(item.product?.discountPrice ?? item.product?.price ?? 0).toLocaleString()} x {item.qty}</p>
                     </div>
                     <span className="font-bold text-[#6B2D0E] shrink-0">₹{(((item.product?.discountPrice ?? item.product?.price ?? 0)) * item.qty).toLocaleString()}</span>

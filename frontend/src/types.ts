@@ -11,7 +11,11 @@ export interface Product {
   imagePublicIds?: string[]; // Cloudinary public IDs for deletion
   isFeatured: boolean;
   isActive: boolean;
-  weight: number;
+  /** Customer-facing package size, e.g. "250 ml", "500 g", "12 pcs". Defaults to '' for legacy products. */
+  packageSize: string;
+  /** @deprecated Legacy physical weight in grams. No longer set via the admin form; kept only as an
+   * internal fallback for shipping-weight calculations (logistics). Not shown to customers. */
+  weight?: number;
   tags?: string[];
   createdAt: string;
   updatedAt: string;
@@ -32,6 +36,9 @@ export interface OrderItem {
   name: string;
   qty: number;
   unitPrice: number;
+  /** Customer-facing package size snapshot at time of order, e.g. "250 ml", "500 g", "12 pcs". */
+  packageSize?: string;
+  /** @deprecated Legacy physical weight in grams, retained only for internal logistics/shipping calculations. */
   weight?: number;
 }
 

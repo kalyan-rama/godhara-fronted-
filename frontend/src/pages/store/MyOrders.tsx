@@ -143,7 +143,9 @@ export default function MyOrders({ setView }: MyOrdersProps) {
                     {order.items.map((item, i) => (
                       <div key={i} className="text-xs text-[#2C1810] flex items-center justify-between gap-4 max-w-md">
                         <span className="font-semibold text-stone-600 line-clamp-1">
-                          {item.name} <span className="text-[#E8820C]">x {item.qty}</span>
+                          {item.name}
+                          {item.packageSize && <span className="text-stone-400 font-normal"> ({item.packageSize})</span>}
+                          {' '}<span className="text-[#E8820C]">x {item.qty}</span>
                         </span>
                         <span className="font-bold text-[#6B2D0E]">₹{(item.qty * item.unitPrice).toLocaleString()}</span>
                       </div>

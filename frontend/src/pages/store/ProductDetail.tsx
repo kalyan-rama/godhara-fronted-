@@ -108,8 +108,8 @@ export default function ProductDetail({ product, setView }: ProductDetailProps) 
                 </div>
                 
                 <div className="text-right">
-                  <p className="text-xs text-stone-500 font-semibold uppercase tracking-wider">Weight content</p>
-                  <p className="text-sm font-bold text-[#2C1810]/80 mt-1">{product.weight} grams Net</p>
+                  <p className="text-xs text-stone-500 font-semibold uppercase tracking-wider">Package Size</p>
+                  <p className="text-sm font-bold text-[#2C1810]/80 mt-1">{product.packageSize || 'N/A'}</p>
                 </div>
               </div>
 

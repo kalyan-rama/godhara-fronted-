@@ -66,7 +66,7 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
   const [prodDiscount, setProdDiscount] = useState('');
   const [prodStock, setProdStock] = useState('');
   const [prodCategory, setProdCategory] = useState('Dairy Products');
-  const [prodWeight, setProdWeight] = useState('250');
+  const [prodPackageSize, setProdPackageSize] = useState('');
   const [prodImages, setProdImages] = useState<string[]>([]);
   const [prodImagePublicIds, setProdImagePublicIds] = useState<string[]>([]);
   const [prodTags, setProdTags] = useState('');
@@ -449,7 +449,7 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
     setProdDiscount('');
     setProdStock('');
     setProdCategory('Dairy Products');
-    setProdWeight('250');
+    setProdPackageSize('');
     setProdImages([]);
     setProdImagePublicIds([]);
     setProdTags('natural, pure, ayurvedic, desi gau');
@@ -467,7 +467,7 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
     setProdDiscount(p.discountPrice?.toString() || '');
     setProdStock(p.stock.toString());
     setProdCategory(p.category);
-    setProdWeight(p.weight.toString());
+    setProdPackageSize(p.packageSize || '');
     setProdImages(p.images || []);
     setProdImagePublicIds((p as any).imagePublicIds || []);
     setProdTags('ayurvedic, organic, traditional');
@@ -478,7 +478,7 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
 
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!prodName || !prodPrice || !prodStock || !prodCategory) {
+    if (!prodName || !prodPrice || !prodStock || !prodCategory || !prodPackageSize.trim()) {
       triggerNotification('Please provide mandatory fields (*)', 'error');
       return;
     }
@@ -496,7 +496,7 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
       discountPrice: prodDiscount ? parseFloat(prodDiscount) : null,
       stock: parseInt(prodStock),
       category: prodCategory,
-      weight: parseInt(prodWeight),
+      packageSize: prodPackageSize.trim(),
       images: prodImages,
       imagePublicIds: prodImagePublicIds,
       isFeatured: prodFeatured,
@@ -679,7 +679,7 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
   };
 
   const handleExportProductsCSV = () => {
-    const headers = ['ID', 'Name', 'Slug', 'Category', 'Price', 'Discount Price', 'Stock', 'Weight (g)', 'Featured', 'Active'];
+    const headers = ['ID', 'Name', 'Slug', 'Category', 'Price', 'Discount Price', 'Stock', 'Package Size', 'Featured', 'Active'];
     const rows = products.map(p => [
       p.id,
       `"${p.name.replace(/"/g, '""')}"`,
@@ -688,7 +688,7 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
       p.price,
       p.discountPrice || '',
       p.stock,
-      p.weight,
+      p.packageSize || '',
       p.isFeatured ? 'YES' : 'NO',
       p.isActive ? 'YES' : 'NO'
     ]);
@@ -1638,7 +1638,7 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
                       </th>
                       <th className="p-4">Traditional Icon</th>
                       <th className="p-4">Name & Slug URL</th>
-                      <th className="p-4">Weight</th>
+                      <th className="p-4">Package Size</th>
                       <th className="p-4">Category</th>
                       <th className="p-4 text-right">Selling Price</th>
                       <th className="p-4 text-center">In Stock</th>
@@ -1666,7 +1666,7 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
                           <p className="text-[10px] text-stone-400 mt-0.5 font-mono">/products/{p.slug}</p>
                         </td>
                         <td className="p-4 text-stone-500 font-mono">
-                          {p.weight}g
+                          {p.packageSize || '—'}
                         </td>
                         <td className="p-4">
                           <span className="bg-stone-100 text-[#6B2D0E] font-semibold px-2.5 py-1 rounded-full text-[10px] border border-stone-200">
@@ -2063,7 +2063,11 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
                       <div className="flex flex-col gap-2 max-h-32 overflow-y-auto border-b border-dashed border-stone-100 pb-2">
                         {selectedOrder.items.map(it => (
                           <div key={it.productId} className="flex justify-between items-center text-[11px]">
-                            <span className="text-stone-700 font-medium">{it.name} <strong className="text-stone-400 ml-1">x {it.qty}</strong></span>
+                            <span className="text-stone-700 font-medium">
+                              {it.name}
+                              {it.packageSize && <span className="text-stone-400 ml-1">({it.packageSize})</span>}
+                              <strong className="text-stone-400 ml-1">x {it.qty}</strong>
+                            </span>
                             <span className="font-bold text-[#2C1810]">₹{(it.unitPrice * it.qty).toLocaleString()}</span>
                           </div>
                         ))}
@@ -2378,7 +2382,7 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
                           <div className="flex flex-col gap-1.5">
                             {o.items.slice(0, 3).map((item, idx) => (
                               <div key={idx} className="flex justify-between items-center text-[10px] pb-1 border-b border-dashed border-stone-100 last:border-0 last:pb-0">
-                                <span className="text-stone-700 font-medium truncate max-w-[180px]">{item.weight ? `${item.name} (${item.weight}g)` : item.name}</span>
+                                <span className="text-stone-700 font-medium truncate max-w-[180px]">{item.packageSize ? `${item.name} (${item.packageSize})` : item.name}</span>
                                 <span className="font-mono font-bold text-[#6B2D0E] shrink-0">Qty: {item.qty}</span>
                               </div>
                             ))}
@@ -3263,13 +3267,13 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold uppercase text-stone-400">Physical Weight (grams) *</label>
+                  <label className="text-[10px] font-bold uppercase text-stone-400">Package Size *</label>
                   <input
-                    type="number"
+                    type="text"
                     required
-                    placeholder="e.g. 250"
-                    value={prodWeight}
-                    onChange={(e) => setProdWeight(e.target.value)}
+                    placeholder="e.g. 250 ml, 500 g, 1 kg, 12 pcs"
+                    value={prodPackageSize}
+                    onChange={(e) => setProdPackageSize(e.target.value)}
                     className="bg-stone-50 border border-[#D4B896]/70 p-2.5 rounded focus:outline-none font-mono"
                   />
                 </div>

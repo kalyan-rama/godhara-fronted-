@@ -55,6 +55,22 @@ export default function OrderConfirm({ order, setView }: OrderConfirmProps) {
               <span className="font-semibold uppercase tracking-wider text-[#6B2D0E]">Order Reference No:</span>
               <span className="font-black text-[#2C1810]">{order.id}</span>
             </div>
+
+            {Array.isArray(order.items) && order.items.length > 0 && (
+              <div className="border-b border-[#D4B896]/20 pb-2 flex flex-col gap-1.5">
+                <span className="font-semibold uppercase tracking-wider text-[#6B2D0E]">Items Ordered:</span>
+                {order.items.map((item: any, i: number) => (
+                  <div key={i} className="flex justify-between items-start gap-4">
+                    <span className="text-[#2C1810]">
+                      {item.name}
+                      {item.packageSize && <span className="text-stone-400"> ({item.packageSize})</span>}
+                      <span className="text-stone-400"> x {item.qty}</span>
+                    </span>
+                    <span className="font-bold text-[#2C1810] shrink-0">₹{(item.qty * item.unitPrice).toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             
             <div className="flex justify-between border-b border-[#D4B896]/20 pb-2">
               <span className="font-semibold uppercase tracking-wider text-[#6B2D0E]">Payment Authorization:</span>

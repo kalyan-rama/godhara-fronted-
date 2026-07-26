@@ -32,7 +32,8 @@ import {
   Package,
   Calendar,
   DollarSign,
-  Upload
+  Upload,
+  ExternalLink
 } from 'lucide-react';
 
 interface AdminConsoleProps {
@@ -44,46 +45,17 @@ interface AdminConsoleProps {
 export default function AdminConsole({ setView, products, refreshProducts }: AdminConsoleProps) {
   const { apiFetch, user } = useAuth();
   
-  const [activeTab, setActiveTab] = useState<'stats' | 'products' | 'offers' | 'orders' | 'labels' | 'customers' | 'settings'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'offers' | 'orders' | 'labels' | 'customers' | 'settings'>('stats');
   const [statsData, setStatsData] = useState<DashboardStats | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<CustomerHistory[]>([]);
   const [coupons, setCoupons] = useState<any[]>([]);
   
-  // Products Management States
+  // Products are a static catalog now (src/data/products.ts) — the
+  // read-only `products` prop below is still used for dashboard stats
+  // (low stock alerts) and the CSV export utility only.
   const [searchProduct, setSearchProduct] = useState('');
-  const [filterCategory, setFilterCategory] = useState('ALL');
-  const [filterActiveStatus, setFilterActiveStatus] = useState('ALL');
-  const [showProductModal, setShowProductModal] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
-  
-  // Product Form states
-  const [prodName, setProdName] = useState('');
-  const [prodSlug, setProdSlug] = useState('');
-  const [prodDesc, setProdDesc] = useState('');
-  const [prodPrice, setProdPrice] = useState('');
-  const [prodDiscount, setProdDiscount] = useState('');
-  const [prodStock, setProdStock] = useState('');
-  const [prodCategory, setProdCategory] = useState('Dairy Products');
-  const [prodPackageSize, setProdPackageSize] = useState('');
-  const [prodImages, setProdImages] = useState<string[]>([]);
-  const [prodImagePublicIds, setProdImagePublicIds] = useState<string[]>([]);
-  const [prodTags, setProdTags] = useState('');
-  const [prodFeatured, setProdFeatured] = useState(false);
-  const [prodActive, setProdActive] = useState(true);
-  const [newCategoryName, setNewCategoryName] = useState('');
-  const [showCategoryInput, setShowCategoryInput] = useState(false);
   const [categoriesList, setCategoriesList] = useState<string[]>(['Dairy Products', 'Personal Care', 'Spiritual', 'Ayurvedic Remedies']);
-
-  // Local storage manual image uploads & library catalog
-  const [localSavedImages, setLocalSavedImages] = useState<{ id: string; name: string; dataUrl: string; timestamp: string }[]>([]);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [dragActive, setDragActive] = useState(false);
-
-  // Inline Quick Stock Edit state
-  const [editingStockId, setEditingStockId] = useState<string | null>(null);
-  const [quickStockValue, setQuickStockValue] = useState('');
 
   // Orders Management Filters
   const [searchOrder, setSearchOrder] = useState('');
@@ -171,185 +143,6 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
     setTimeout(() => setNotification(null), 3000);
   };
 
-  useEffect(() => {
-    loadAllAdminData();
-    try {
-      const raw = localStorage.getItem('gdh_local_images');
-      if (raw) {
-        setLocalSavedImages(JSON.parse(raw));
-      }
-    } catch (e) {
-      console.error('Failed to load local storage uploads:', e);
-    }
-  }, [activeTab, products, memberSearch, memberRoleFilter, memberStatusFilter, memberProviderFilter]);
-
-  // Helper to compress and read uploaded files manually
-  const handleImageFileUpload = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    setIsUploadingImage(true);
-    
-    let processedCount = 0;
-    const newServerUrls: string[] = [];
-    const newPublicIds: string[] = [];
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      if (!file.type.startsWith('image/')) {
-        triggerNotification('File must be an image', 'error');
-        continue;
-      }
-
-      try {
-        const compressedBase64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            const img = new window.Image();
-            img.onload = () => {
-              const canvas = document.createElement('canvas');
-              const MAX_WIDTH = 800; // crisper images
-              const MAX_HEIGHT = 800;
-              let width = img.width;
-              let height = img.height;
-
-              if (width > height) {
-                if (width > MAX_WIDTH) {
-                  height *= MAX_WIDTH / width;
-                  width = MAX_WIDTH;
-                }
-              } else {
-                if (height > MAX_HEIGHT) {
-                  width *= MAX_HEIGHT / height;
-                  height = MAX_HEIGHT;
-                }
-              }
-
-              canvas.width = width;
-              canvas.height = height;
-
-              const ctx = canvas.getContext('2d');
-              if (!ctx) {
-                resolve(event.target?.result as string);
-                return;
-              }
-
-              ctx.drawImage(img, 0, 0, width, height);
-              // Compressed webp/jpeg to keep storage footprint small but clean
-              const finalBase64 = canvas.toDataURL('image/jpeg', 0.82);
-              resolve(finalBase64);
-            };
-            img.onerror = (err) => reject(err);
-            img.src = event.target?.result as string;
-          };
-          reader.onerror = (err) => reject(err);
-          reader.readAsDataURL(file);
-        });
-
-        // Save this image permanently in our local uploads folder via backend API
-        console.log('[Image Upload] Sending compressed image block to backend...', file.name);
-        const uploadRes = await apiFetch('/api/admin/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ base64: compressedBase64, filename: file.name })
-        });
-
-        if (!uploadRes.ok) {
-          throw new Error(`Upload API returned status ${uploadRes.status}`);
-        }
-
-        const uploadData = await uploadRes.json();
-        const serverUrl = uploadData.url || uploadData.imageUrl;
-        const publicId = uploadData.publicId || null;
-        console.log('[Image Upload] Stored to Cloudinary:', serverUrl, 'publicId:', publicId);
-
-        newServerUrls.push(serverUrl);
-        if (publicId) {
-          newPublicIds.push(publicId);
-        }
-
-        // Save image metadata/URL locally in localStorage configuration catalog
-        try {
-          const raw = localStorage.getItem('gdh_local_images');
-          let currentList: any[] = raw ? JSON.parse(raw) : [];
-          // Skip if already exists in local storage list with same URL
-          currentList = currentList.filter(item => item.dataUrl !== serverUrl);
-          currentList.unshift({
-            id: 'local_img_' + Date.now() + '_' + i,
-            name: file.name,
-            dataUrl: serverUrl, // holds /uploads/... instead of massive Base64
-            timestamp: new Date().toISOString()
-          });
-          // Bound lists at 12 records limits to maintain browser local storage size
-          if (currentList.length > 12) {
-            currentList = currentList.slice(0, 12);
-          }
-          localStorage.setItem('gdh_local_images', JSON.stringify(currentList));
-          setLocalSavedImages(currentList);
-        } catch (storageErr) {
-          console.warn('LocalStorage limit exceeded, skipping save block', storageErr);
-        }
-
-        processedCount++;
-      } catch (err: any) {
-        console.error('File compilation compression/upload error:', err);
-        triggerNotification(`Error uploading "${file.name}": ${err.message || err}`, 'error');
-      }
-    }
-
-    if (newServerUrls.length > 0) {
-      setProdImages(prev => [...prev, ...newServerUrls]);
-      if (newPublicIds.length > 0) {
-        setProdImagePublicIds(prev => [...prev, ...newPublicIds]);
-      }
-      triggerNotification(`✓ Successfully uploaded ${processedCount} image(s) to Cloudinary!`);
-    } else {
-      triggerNotification('No images processed successfully', 'error');
-    }
-    setIsUploadingImage(false);
-  };
-
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleImageFileUpload(e.dataTransfer.files);
-    }
-  };
-
-  const deleteRecentLocalImage = (id: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    try {
-      const updated = localSavedImages.filter(img => img.id !== id);
-      localStorage.setItem('gdh_local_images', JSON.stringify(updated));
-      setLocalSavedImages(updated);
-      triggerNotification('Removed image from upload history.');
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const clearAllLocalImages = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const confirmed = window.confirm('Clear all manually uploaded local storage images from history?');
-    if (confirmed) {
-      localStorage.removeItem('gdh_local_images');
-      setLocalSavedImages([]);
-      triggerNotification('Cleared your local storage image gallery.');
-    }
-  };
-
   const loadAllAdminData = async () => {
     try {
       // 1. Loader Stats
@@ -426,257 +219,9 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
     }
   };
 
-  // Auto-slug generations when name edits
-  const handleNameChangeForSlug = (val: string) => {
-    setProdName(val);
-    if (!editingProduct) {
-      const generated = val
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .trim()
-        .replace(/\s+/g, '-');
-      setProdSlug(generated);
-    }
-  };
-
-  // --- ACTIONS: PRODUCTS CRUD ---
-  const handleOpenAddProduct = () => {
-    setEditingProduct(null);
-    setProdName('');
-    setProdSlug('');
-    setProdDesc('');
-    setProdPrice('');
-    setProdDiscount('');
-    setProdStock('');
-    setProdCategory('Dairy Products');
-    setProdPackageSize('');
-    setProdImages([]);
-    setProdImagePublicIds([]);
-    setProdTags('natural, pure, ayurvedic, desi gau');
-    setProdFeatured(false);
-    setProdActive(true);
-    setShowProductModal(true);
-  };
-
-  const handleOpenEditProduct = (p: Product) => {
-    setEditingProduct(p);
-    setProdName(p.name);
-    setProdSlug(p.slug);
-    setProdDesc(p.description);
-    setProdPrice(p.price.toString());
-    setProdDiscount(p.discountPrice?.toString() || '');
-    setProdStock(p.stock.toString());
-    setProdCategory(p.category);
-    setProdPackageSize(p.packageSize || '');
-    setProdImages(p.images || []);
-    setProdImagePublicIds((p as any).imagePublicIds || []);
-    setProdTags('ayurvedic, organic, traditional');
-    setProdFeatured(p.isFeatured);
-    setProdActive(p.isActive !== false);
-    setShowProductModal(true);
-  };
-
-  const handleSaveProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!prodName || !prodPrice || !prodStock || !prodCategory || !prodPackageSize.trim()) {
-      triggerNotification('Please provide mandatory fields (*)', 'error');
-      return;
-    }
-
-    if (prodImages.length === 0) {
-      triggerNotification('Please upload or select at least one local image.', 'error');
-      return;
-    }
-
-    const payload = {
-      name: prodName,
-      slug: prodSlug || prodName.toLowerCase().replace(/\s+/g, '-'),
-      description: prodDesc,
-      price: parseFloat(prodPrice),
-      discountPrice: prodDiscount ? parseFloat(prodDiscount) : null,
-      stock: parseInt(prodStock),
-      category: prodCategory,
-      packageSize: prodPackageSize.trim(),
-      images: prodImages,
-      imagePublicIds: prodImagePublicIds,
-      isFeatured: prodFeatured,
-      isActive: prodActive
-    };
-
-    try {
-      let res;
-      if (editingProduct) {
-        res = await apiFetch(`/api/admin/products/${editingProduct.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-      } else {
-        res = await apiFetch('/api/admin/products', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-      }
-
-      if (res.ok) {
-        setShowProductModal(false);
-        setProdImagePublicIds([]);
-        refreshProducts();
-        triggerNotification(editingProduct ? '✓ Product updated inside traditional logs!' : '✓ Sacred product entry logged successfully!');
-      } else {
-        const errorData = await res.json();
-        triggerNotification(errorData.message || 'Workflow exception writing product info', 'error');
-      }
-    } catch (err) {
-      triggerNotification('Failed communicating with server catalog databases', 'error');
-    }
-  };
-
-  const handleToggleProductFeature = async (product: Product) => {
-    try {
-      const res = await apiFetch(`/api/admin/products/${product.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isFeatured: !product.isFeatured })
-      });
-      if (res.ok) {
-        refreshProducts();
-        triggerNotification(`✓ Featured state changed for ${product.name}!`);
-      }
-    } catch (e) {
-      triggerNotification('Error switching featured state', 'error');
-    }
-  };
-
-  const handleToggleProductActive = async (product: Product) => {
-    try {
-      const res = await apiFetch(`/api/admin/products/${product.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: !product.isActive })
-      });
-      if (res.ok) {
-        refreshProducts();
-        triggerNotification(`✓ Product active state changed!`);
-      }
-    } catch (e) {
-      triggerNotification('Error toggling product active', 'error');
-    }
-  };
-
-  const handleInlineStockEdit = (p: Product) => {
-    setEditingStockId(p.id);
-    setQuickStockValue(p.stock.toString());
-  };
-
-  const handleSaveInlineStock = async (id: string) => {
-    const parsedStock = parseInt(quickStockValue);
-    if (isNaN(parsedStock)) {
-      setEditingStockId(null);
-      return;
-    }
-
-    try {
-      const res = await apiFetch(`/api/admin/products/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stock: parsedStock })
-      });
-      if (res.ok) {
-        refreshProducts();
-        setEditingStockId(null);
-        triggerNotification('✓ Stock inventory updated instantly!');
-      }
-    } catch (e) {
-      triggerNotification('Failed updating inline stock count', 'error');
-    }
-  };
-
-  const handleAddCategoryInline = () => {
-    if (!newCategoryName.trim()) return;
-    if (categoriesList.includes(newCategoryName.trim())) {
-      setProdCategory(newCategoryName.trim());
-      setShowCategoryInput(false);
-      setNewCategoryName('');
-      return;
-    }
-    const updatedCategories = [...categoriesList, newCategoryName.trim()];
-    setCategoriesList(updatedCategories);
-    setProdCategory(newCategoryName.trim());
-    setShowCategoryInput(false);
-    setNewCategoryName('');
-    triggerNotification(`✓ Category "${newCategoryName.trim()}" added to local selection!`);
-  };
-
-  const handleDeleteProduct = async (id: string, name: string) => {
-    const confirmed = window.confirm(`Are you absolutely sure you want to delete ${name}?`);
-    if (!confirmed) return;
-
-    try {
-      const res = await apiFetch(`/api/admin/products/${id}`, {
-        method: 'DELETE'
-      });
-      if (res.ok) {
-        refreshProducts();
-        triggerNotification('✓ Selected product archived/removed from active ledger.');
-      }
-    } catch (err) {
-      triggerNotification('Archive/deletion failure.', 'error');
-    }
-  };
-
-  // BULK OPERATIONS FOR PRODUCTS
-  const handleSelectAllProducts = (checked: boolean) => {
-    if (checked) {
-      setSelectedProductIds(filteredProducts.map(p => p.id));
-    } else {
-      setSelectedProductIds([]);
-    }
-  };
-
-  const handleSelectProduct = (id: string, checked: boolean) => {
-    if (checked) {
-      setSelectedProductIds(prev => [...prev, id]);
-    } else {
-      setSelectedProductIds(prev => prev.filter(pId => pId !== id));
-    }
-  };
-
-  const handleBulkDelete = async () => {
-    if (selectedProductIds.length === 0) return;
-    const confirmed = window.confirm(`Archive all ${selectedProductIds.length} selected items?`);
-    if (!confirmed) return;
-
-    let successCount = 0;
-    for (const id of selectedProductIds) {
-      try {
-        const res = await apiFetch(`/api/admin/products/${id}`, { method: 'DELETE' });
-        if (res.ok) successCount++;
-      } catch (e) {}
-    }
-    refreshProducts();
-    setSelectedProductIds([]);
-    triggerNotification(`✓ Sucessfully archived ${successCount} products!`);
-  };
-
-  const handleBulkActivate = async (active: boolean) => {
-    if (selectedProductIds.length === 0) return;
-    let successCount = 0;
-    for (const id of selectedProductIds) {
-      try {
-        const res = await apiFetch(`/api/admin/products/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ isActive: active })
-        });
-        if (res.ok) successCount++;
-      } catch (e) {}
-    }
-    refreshProducts();
-    setSelectedProductIds([]);
-    triggerNotification(`✓ Updated active status of ${successCount} items!`);
-  };
+  useEffect(() => {
+    loadAllAdminData();
+  }, [activeTab, products, memberSearch, memberRoleFilter, memberStatusFilter, memberProviderFilter]);
 
   const handleExportProductsCSV = () => {
     const headers = ['ID', 'Name', 'Slug', 'Category', 'Price', 'Discount Price', 'Stock', 'Package Size', 'Featured', 'Active'];
@@ -1185,17 +730,6 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
     return Object.entries(dataList);
   };
 
-  // FILTERS FOR PRODUCTS SYSTEM
-  const filteredProducts = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchProduct.toLowerCase()) || 
-                          p.category.toLowerCase().includes(searchProduct.toLowerCase());
-    const matchesCategory = filterCategory === 'ALL' || p.category === filterCategory;
-    const matchesActive = filterActiveStatus === 'ALL' || 
-                          (filterActiveStatus === 'ACTIVE' && p.isActive !== false) ||
-                          (filterActiveStatus === 'INACTIVE' && p.isActive === false);
-    return matchesSearch && matchesCategory && matchesActive;
-  });
-
   // FILTERS FOR ORDERS SYSTEM
   const filteredOrders = orders.filter(o => {
     const matchesSearch = o.id.toLowerCase().includes(searchOrder.toLowerCase()) ||
@@ -1262,16 +796,6 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
             >
               <TrendingUp size={14} />
               Dashboard
-            </button>
-
-            <button
-              onClick={() => setActiveTab('products')}
-              className={`w-full text-left py-2.5 px-4 rounded-lg flex items-center gap-2.5 transition-all cursor-pointer ${
-                activeTab === 'products' ? 'bg-[#E8820C] text-white shadow' : 'hover:bg-[#52220A] text-stone-200'
-              }`}
-            >
-              <ShoppingBag size={14} />
-              Products
             </button>
 
             <button
@@ -1477,36 +1001,11 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
                           </div>
                         </div>
 
-                        {/* Stock Quick Edit panel */}
+                        {/* Stock (read-only — products are a static catalog) */}
                         <div className="flex items-center gap-2">
-                          {editingStockId === p.id ? (
-                            <div className="flex gap-1 items-center">
-                              <input 
-                                type="number" 
-                                value={quickStockValue}
-                                onChange={(e) => setQuickStockValue(e.target.value)}
-                                className="w-16 bg-white border border-[#D4B896] p-1 text-center rounded text-xs focus:ring-1 focus:ring-[#E8820C]"
-                              />
-                              <button 
-                                onClick={() => handleSaveInlineStock(p.id)}
-                                className="bg-[#6B2D0E] text-white p-1 rounded hover:bg-[#E8820C] cursor-pointer"
-                              >
-                                <Save size={12} />
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2.5">
-                              <span className="font-bold text-red-700 bg-red-50 px-2.5 py-1 rounded-full border border-red-100">
-                                {p.stock} units
-                              </span>
-                              <button 
-                                onClick={() => handleInlineStockEdit(p)}
-                                className="text-[#6B2D0E] hover:text-[#E8820C] font-semibold underline text-[10px] cursor-pointer"
-                              >
-                                Edit Stock
-                              </button>
-                            </div>
-                          )}
+                          <span className="font-bold text-red-700 bg-red-50 px-2.5 py-1 rounded-full border border-red-100">
+                            {p.stock} units
+                          </span>
                         </div>
                       </div>
                     ))
@@ -1557,233 +1056,6 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
                 </button>
               </div>
 
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: PRODUCTS LEDGER */}
-        {activeTab === 'products' && (
-          <div className="flex flex-col gap-6">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 bg-white p-6 rounded-2xl border border-[#D4B896]/30 shadow-sm">
-              <div>
-                <h1 className="text-2xl font-serif font-black text-[#6B2D0E]">Sacred Product Vault</h1>
-                <p className="text-xs text-stone-500 mt-0.5">Control live stock visibility, pricing strategies and features</p>
-              </div>
-              <div className="flex gap-2">
-                <button 
-                  onClick={handleExportProductsCSV} 
-                  className="bg-white hover:bg-stone-50 text-[#6B2D0E] px-4 py-3 rounded-full border border-[#D4B896] text-xs font-bold transition-all uppercase flex items-center gap-1.5 cursor-pointer shadow-sm"
-                >
-                  <Download size={13} /> Export Excel
-                </button>
-                <button 
-                  onClick={handleOpenAddProduct}
-                  className="bg-[#6B2D0E] hover:bg-[#E8820C] text-white px-5 py-3 rounded-full text-xs font-bold transition-all uppercase flex items-center gap-1.5 cursor-pointer shadow"
-                >
-                  <Plus size={14} /> Add Product Entry
-                </button>
-              </div>
-            </div>
-
-            {/* Filter controls */}
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center bg-white p-4 rounded-xl border border-[#D4B896]/30">
-              <div className="sm:col-span-6 relative">
-                <input 
-                  type="text"
-                  placeholder="Seach by name or category..."
-                  value={searchProduct}
-                  onChange={(e) => setSearchProduct(e.target.value)}
-                  className="w-full bg-stone-50 border border-[#D4B896]/70 rounded-lg p-2.5 pl-9 text-xs focus:outline-none"
-                />
-                <Search size={14} className="absolute left-3 top-3.5 text-stone-400" />
-              </div>
-
-              <div className="sm:col-span-3">
-                <select 
-                  value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}
-                  className="w-full bg-stone-50 border border-[#D4B896]/70 rounded-lg p-2.5 text-xs focus:outline-none cursor-pointer"
-                >
-                  <option value="ALL">ALL CATEGORIES</option>
-                  {categoriesList.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                </select>
-              </div>
-
-              <div className="sm:col-span-3">
-                <select 
-                  value={filterActiveStatus}
-                  onChange={(e) => setFilterActiveStatus(e.target.value)}
-                  className="w-full bg-stone-50 border border-[#D4B896]/70 rounded-lg p-2.5 text-xs focus:outline-none cursor-pointer"
-                >
-                  <option value="ALL">ALL VISIBILITY</option>
-                  <option value="ACTIVE">ACTIVE ONLY</option>
-                  <option value="INACTIVE">HIDDEN ONLY</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Products Interactive Table */}
-            <div className="bg-white rounded-2xl border border-[#D4B896]/30 shadow-sm overflow-hidden text-xs">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-[#6B2D0E] text-white text-[10px] uppercase font-bold tracking-widest border-b border-[#D4B896]">
-                      <th className="p-4 w-12 text-center">
-                        <input 
-                          type="checkbox"
-                          checked={selectedProductIds.length === filteredProducts.length && filteredProducts.length > 0}
-                          onChange={(e) => handleSelectAllProducts(e.target.checked)}
-                          className="h-3.5 w-3.5 rounded accent-[#E8820C] cursor-pointer"
-                        />
-                      </th>
-                      <th className="p-4">Traditional Icon</th>
-                      <th className="p-4">Name & Slug URL</th>
-                      <th className="p-4">Package Size</th>
-                      <th className="p-4">Category</th>
-                      <th className="p-4 text-right">Selling Price</th>
-                      <th className="p-4 text-center">In Stock</th>
-                      <th className="p-4 text-center">Feat.</th>
-                      <th className="p-4 text-center">Live</th>
-                      <th className="p-4 text-center">Ledger Controls</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-stone-100">
-                    {filteredProducts.map(p => (
-                      <tr key={p.id} className="hover:bg-stone-50">
-                        <td className="p-4 text-center">
-                          <input 
-                            type="checkbox"
-                            checked={selectedProductIds.includes(p.id)}
-                            onChange={(e) => handleSelectProduct(p.id, e.target.checked)}
-                            className="h-3.5 w-3.5 rounded accent-[#E8820C] cursor-pointer"
-                          />
-                        </td>
-                        <td className="p-4">
-                          <img src={p.images?.[0] || '/logo.png'} alt="" className="h-10 w-10 rounded-lg object-cover border border-[#D4B896]/30" />
-                        </td>
-                        <td className="p-4">
-                          <p className="font-bold text-[#2C1810]" onClick={() => handleOpenEditProduct(p)}>{p.name}</p>
-                          <p className="text-[10px] text-stone-400 mt-0.5 font-mono">/products/{p.slug}</p>
-                        </td>
-                        <td className="p-4 text-stone-500 font-mono">
-                          {p.packageSize || '—'}
-                        </td>
-                        <td className="p-4">
-                          <span className="bg-stone-100 text-[#6B2D0E] font-semibold px-2.5 py-1 rounded-full text-[10px] border border-stone-200">
-                            {p.category}
-                          </span>
-                        </td>
-                        <td className="p-4 text-right font-extrabold text-[#2C1810]">
-                          {p.discountPrice ? (
-                            <div className="flex flex-col text-right">
-                              <span>₹{p.discountPrice.toLocaleString()}</span>
-                              <span className="text-[9px] text-stone-300 line-through">₹{p.price.toLocaleString()}</span>
-                            </div>
-                          ) : (
-                            <span>₹{p.price.toLocaleString()}</span>
-                          )}
-                        </td>
-                        <td className="p-4 text-center font-bold">
-                          {editingStockId === p.id ? (
-                            <div className="flex gap-1 items-center justify-center">
-                              <input 
-                                type="number" 
-                                value={quickStockValue}
-                                onChange={(e) => setQuickStockValue(e.target.value)}
-                                className="w-12 bg-white border border-[#D4B896] p-0.5 text-center text-[10px]"
-                                onKeyDown={(e) => e.key === 'Enter' && handleSaveInlineStock(p.id)}
-                              />
-                              <button onClick={() => handleSaveInlineStock(p.id)} className="bg-[#6B2D0E] text-white p-0.5 rounded cursor-pointer"><Check size={10} /></button>
-                            </div>
-                          ) : (
-                            <span 
-                              onClick={() => handleInlineStockEdit(p)}
-                              title="Click to quickly modify inventory"
-                              className={`cursor-pointer border-b border-dashed border-[#6B2D0E] px-2 py-0.5 ${
-                                p.stock < lowStockAlertLimit ? 'text-red-700 bg-red-50' : 'text-stone-700'
-                              }`}
-                            >
-                              {p.stock}
-                            </span>
-                          )}
-                        </td>
-                        <td className="p-4 text-center">
-                          <button 
-                            onClick={() => handleToggleProductFeature(p)}
-                            className={`p-1 rounded cursor-pointer ${p.isFeatured ? 'text-[#E8820C]' : 'text-stone-300 hover:text-[#E8820C]'}`}
-                          >
-                            ★
-                          </button>
-                        </td>
-                        <td className="p-4 text-center">
-                          <button 
-                            onClick={() => handleToggleProductActive(p)}
-                            className={`px-2.5 py-1 text-[9px] font-extrabold uppercase rounded-full cursor-pointer ${
-                              p.isActive !== false ? 'bg-green-100 text-green-800' : 'bg-stone-100 text-stone-400'
-                            }`}
-                          >
-                            {p.isActive !== false ? 'Active' : 'Hidden'}
-                          </button>
-                        </td>
-                        <td className="p-4 text-center flex justify-center gap-2 mt-1">
-                          <button 
-                            onClick={() => handleOpenEditProduct(p)} 
-                            className="text-blue-700 hover:text-white hover:bg-blue-600 p-1.5 rounded duration-150 cursor-pointer border border-blue-200"
-                            title="Edit"
-                          >
-                            <Edit size={12} />
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteProduct(p.id, p.name)} 
-                            className="text-red-700 hover:text-white hover:bg-red-600 p-1.5 rounded duration-150 cursor-pointer border border-red-200"
-                            title="Archive"
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {filteredProducts.length === 0 && (
-                      <tr>
-                        <td colSpan={10} className="p-8 text-center text-stone-400 italic">No products matching the selected catalog filters...</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Floating bulk action bar at page bottom */}
-              {selectedProductIds.length > 0 && (
-                <div className="bg-[#F5EFE6] border-t border-[#D4B896] p-4 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-bold uppercase select-none font-sans">
-                  <span className="text-[#6B2D0E]">{selectedProductIds.length} Selected items for bulk action:</span>
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => handleBulkActivate(true)}
-                      className="bg-green-600 text-white hover:bg-green-700 px-3.5 py-2 rounded-full cursor-pointer"
-                    >
-                      ✓ Activate Selected
-                    </button>
-                    <button 
-                      onClick={() => handleBulkActivate(false)}
-                      className="bg-stone-500 text-white hover:bg-stone-600 px-3.5 py-2 rounded-full cursor-pointer"
-                    >
-                      ⚠ Hide Selected
-                    </button>
-                    <button 
-                      onClick={handleBulkDelete}
-                      className="bg-red-700 text-white hover:bg-red-800 px-3.5 py-2 rounded-full cursor-pointer"
-                    >
-                      ☠ Move to Archive (Delete)
-                    </button>
-                    <button 
-                      onClick={() => setSelectedProductIds([])}
-                      className="bg-white text-stone-600 px-4 py-2 rounded-full border border-stone-300 cursor-pointer"
-                    >
-                      Clear Select
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         )}
@@ -2158,8 +1430,26 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
                           rel="noreferrer"
                           className="bg-[#E8820C] hover:bg-[#6B2D0E] text-white font-bold py-2.5 rounded text-center flex items-center justify-center gap-1 cursor-pointer select-none"
                         >
-                          <Printer size={12} /> View Label PDF
+                          <Printer size={12} /> Download Label
                         </a>
+                      </div>
+
+                      {/* Google Drive shipping label backup */}
+                      <div className="mt-2">
+                        {selectedOrder.driveFileUrl ? (
+                          <a
+                            href={selectedOrder.driveFileUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="w-full bg-[#6B2D0E] hover:bg-[#52220A] text-white font-bold py-2.5 rounded text-center flex items-center justify-center gap-1.5 cursor-pointer select-none"
+                          >
+                            <ExternalLink size={12} /> Open Google Drive
+                          </a>
+                        ) : (
+                          <div className="w-full bg-stone-50 border border-dashed border-stone-200 text-stone-400 italic text-[11px] py-2.5 rounded text-center">
+                            Not yet uploaded to Google Drive
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -2395,8 +1685,8 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
                         </div>
                       </div>
 
-                      {/* Download print trigger action */}
-                      <div className="p-3 bg-stone-50 border-t border-[#D4B896]/30 flex gap-2">
+                      {/* Download / Google Drive action buttons */}
+                      <div className="p-3 bg-stone-50 border-t border-[#D4B896]/30 flex flex-col gap-2">
                         <a 
                           href={`${API_URL}/api/orders/${o.id}/label`}
                           target="_blank"
@@ -2406,8 +1696,22 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
                           }}
                           className="w-full text-center text-xs bg-white hover:bg-stone-100 text-[#6B2D0E] active:scale-[0.98] font-bold py-2.5 rounded-xl border border-[#D4B896] hover:border-[#E8820C] transition-all flex items-center justify-center gap-1.5 select-none"
                         >
-                          <Printer size={13} /> Print 1/4 A4 Sheet Label
+                          <Printer size={13} /> Download Label
                         </a>
+                        {o.driveFileUrl ? (
+                          <a
+                            href={o.driveFileUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="w-full text-center text-xs bg-[#6B2D0E] hover:bg-[#E8820C] text-white active:scale-[0.98] font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 select-none"
+                          >
+                            <ExternalLink size={13} /> Open in Google Drive
+                          </a>
+                        ) : (
+                          <span className="w-full text-center text-[10px] text-stone-400 italic py-1.5">
+                            Not yet uploaded to Google Drive
+                          </span>
+                        )}
                       </div>
                     </div>
                   );
@@ -2471,17 +1775,31 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
                               {calculatedQty} items
                             </td>
                             <td className="p-4 text-center font-bold">
-                              <a 
-                                href={`${API_URL}/api/orders/${o.id}/label`}
-                                target="_blank"
-                                rel="noreferrer"
-                                onClick={() => {
-                                  setPrintedLabels(prev => ({ ...prev, [o.id]: true }));
-                                }}
-                                className="bg-white hover:bg-stone-100 text-[#6B2D0E] font-bold border border-[#D4B896] px-3.5 py-1.5 rounded-lg flex items-center justify-center gap-1 inline-flex cursor-pointer select-none"
-                              >
-                                <Printer size={12} /> Print 1/4 A4 Label
-                              </a>
+                              <div className="flex flex-col gap-1.5 items-center">
+                                <a 
+                                  href={`${API_URL}/api/orders/${o.id}/label`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  onClick={() => {
+                                    setPrintedLabels(prev => ({ ...prev, [o.id]: true }));
+                                  }}
+                                  className="w-full bg-white hover:bg-stone-100 text-[#6B2D0E] font-bold border border-[#D4B896] px-3.5 py-1.5 rounded-lg flex items-center justify-center gap-1 cursor-pointer select-none"
+                                >
+                                  <Printer size={12} /> Download Label
+                                </a>
+                                {o.driveFileUrl ? (
+                                  <a
+                                    href={o.driveFileUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="w-full bg-[#6B2D0E] hover:bg-[#E8820C] text-white font-bold px-3.5 py-1.5 rounded-lg flex items-center justify-center gap-1 cursor-pointer select-none"
+                                  >
+                                    <ExternalLink size={12} /> Google Drive
+                                  </a>
+                                ) : (
+                                  <span className="text-[9px] text-stone-400 italic">No Drive upload</span>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         );
@@ -3158,309 +2476,6 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
         )}
 
       </main>
-
-      {/* PRODUCT ADD/EDIT DRAWER MODAL */}
-      {showProductModal && (
-        <div className="fixed inset-0 bg-[#2C1810]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-[#D4B896] rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 sm:p-8 flex flex-col gap-6 text-xs animate-scale-up">
-            
-            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
-              <div>
-                <h2 className="text-lg font-serif font-bold text-[#6B2D0E]">{editingProduct ? 'Edit Vedic Product' : 'Log New Vedic Product'}</h2>
-                <span className="text-[10px] text-stone-400 uppercase tracking-widest font-bold">Catalog Registration Panel</span>
-              </div>
-              <button 
-                onClick={() => setShowProductModal(false)}
-                className="p-1.5 rounded-full bg-stone-50 border border-stone-200 hover:bg-stone-100 text-stone-400 hover:text-stone-700 cursor-pointer"
-              >
-                <X size={14} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveProduct} className="flex flex-col gap-4">
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5 col-span-1 sm:col-span-2">
-                  <label className="text-[10px] font-bold uppercase text-stone-400">Product Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Desi Ghee (Traditional A2)"
-                    value={prodName}
-                    onChange={(e) => handleNameChangeForSlug(e.target.value)}
-                    className="bg-stone-50 border border-[#D4B896]/70 p-2.5 rounded focus:outline-none"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold uppercase text-stone-400">Slug URL Endpoint (Auto-calculated) *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. desi-ghee-traditional-a2"
-                    value={prodSlug}
-                    onChange={(e) => setProdSlug(e.target.value)}
-                    className="bg-stone-50 border border-[#D4B896]/70 p-2.5 rounded focus:outline-none font-mono"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold uppercase text-stone-400">Traditional Category *</label>
-                  <div className="flex gap-2 relative">
-                    {showCategoryInput ? (
-                      <div className="flex-grow flex gap-1 items-center">
-                        <input 
-                          type="text"
-                          placeholder="Category name"
-                          value={newCategoryName}
-                          onChange={(e) => setNewCategoryName(e.target.value)}
-                          className="w-full bg-stone-50 border border-[#D4B896]/70 p-2 rounded text-xs focus:outline-none"
-                        />
-                        <button 
-                          type="button" 
-                          onClick={handleAddCategoryInline}
-                          className="bg-[#6B2D0E] text-white p-2 rounded cursor-pointer"
-                        >
-                          Add
-                        </button>
-                      </div>
-                    ) : (
-                      <select
-                        value={prodCategory}
-                        onChange={(e) => setProdCategory(e.target.value)}
-                        className="bg-stone-50 border border-[#D4B896]/70 p-2.5 rounded focus:outline-none w-full cursor-pointer"
-                      >
-                        {categoriesList.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                      </select>
-                    )}
-                    <button 
-                      type="button"
-                      onClick={() => setShowCategoryInput(!showCategoryInput)}
-                      className="bg-stone-100 border border-stone-200 text-stone-600 px-2.5 py-2.5 rounded hover:bg-stone-200 cursor-pointer"
-                    >
-                      {showCategoryInput ? 'Cancel' : '+ New'}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold uppercase text-stone-400">Standard Price (₹) *</label>
-                  <input
-                    type="number"
-                    required
-                    placeholder="e.g. 799"
-                    value={prodPrice}
-                    onChange={(e) => setProdPrice(e.target.value)}
-                    className="bg-stone-50 border border-[#D4B896]/70 p-2.5 rounded focus:outline-none font-mono"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold uppercase text-stone-400">Discount Price Option (₹)</label>
-                  <input
-                    type="number"
-                    placeholder="e.g. 699"
-                    value={prodDiscount}
-                    onChange={(e) => setProdDiscount(e.target.value)}
-                    className="bg-stone-50 border border-[#D4B896]/70 p-2.5 rounded focus:outline-none font-mono"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold uppercase text-stone-400">Package Size *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. 250 ml, 500 g, 1 kg, 12 pcs"
-                    value={prodPackageSize}
-                    onChange={(e) => setProdPackageSize(e.target.value)}
-                    className="bg-stone-50 border border-[#D4B896]/70 p-2.5 rounded focus:outline-none font-mono"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold uppercase text-stone-400">Available Stock Inventory *</label>
-                  <input
-                    type="number"
-                    required
-                    placeholder="e.g. 150"
-                    value={prodStock}
-                    onChange={(e) => setProdStock(e.target.value)}
-                    className="bg-stone-50 border border-[#D4B896]/70 p-2.5 rounded focus:outline-none font-mono"
-                  />
-                </div>
-
-                <div className="flex items-center gap-6 col-span-1 sm:col-span-2 py-2">
-                  <div className="flex items-center gap-2">
-                    <input 
-                      type="checkbox"
-                      checked={prodFeatured}
-                      onChange={(e) => setProdFeatured(e.target.checked)}
-                      className="h-4 w-4 rounded text-[#6B2D0E] accent-[#E8820C] cursor-pointer"
-                    />
-                    <label className="text-[10px] font-bold uppercase text-stone-500">Feature on Home Slider</label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input 
-                      type="checkbox"
-                      checked={prodActive}
-                      onChange={(e) => setProdActive(e.target.checked)}
-                      className="h-4 w-4 rounded text-[#6B2D0E] accent-[#E8820C] cursor-pointer"
-                    />
-                    <label className="text-[10px] font-bold uppercase text-stone-500">Active Live Visibility</label>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1.5 col-span-1 sm:col-span-2">
-                  <div className="flex justify-between items-center bg-[#52220A]/10 border border-[#D4B896]/40 p-2.5 rounded-lg">
-                    <span className="text-[10px] font-bold uppercase text-[#6B2D0E]">Attached Local Images</span>
-                    <span className="text-[10px] bg-[#6B2D0E] text-white px-2 py-0.5 rounded font-mono font-bold">
-                      {prodImages.length} Linked
-                    </span>
-                  </div>
-
-                  {/* High quality local thumbnail list */}
-                  <div className="flex flex-wrap gap-2 p-2 bg-stone-50 border border-stone-200 rounded-lg min-h-[50px] items-center">
-                    {prodImages.map((imgUrl, idx) => (
-                      <div key={idx} className="relative w-12 h-12 rounded border border-[#D4B896] overflow-hidden group shadow-sm shrink-0">
-                        <img src={imgUrl} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setProdImages(prev => prev.filter((_, i) => i !== idx));
-                            setProdImagePublicIds(prev => prev.filter((_, i) => i !== idx));
-                          }}
-                          className="absolute inset-0 bg-red-600/90 text-white flex items-center justify-center text-[8px] font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    ))}
-                    {prodImages.length === 0 && (
-                      <span className="text-[11px] text-stone-400 italic">No images currently selected. Upload or drag-and-drop local files below.</span>
-                    )}
-                  </div>
-                  
-                  {/* MANUAL FILE UPLOAD INTEGRATION WITH LOCAL STORAGE */}
-                  <div className="mt-2 border border-dashed border-[#D4B896]/30 bg-amber-50/10 p-3.5 rounded-xl flex flex-col items-center justify-center transition-all">
-                    <div 
-                      onDragEnter={handleDrag}
-                      onDragOver={handleDrag}
-                      onDragLeave={handleDrag}
-                      onDrop={handleDrop}
-                      className={`w-full py-4 px-2 text-center flex flex-col items-center justify-center cursor-pointer transition-colors rounded-lg border border-dashed ${
-                        dragActive ? "border-[#E8820C] bg-[#F5EFE6]" : "border-stone-200 hover:border-[#D4B896] bg-stone-50/40"
-                      }`}
-                      onClick={() => document.getElementById('manual-image-uploader')?.click()}
-                    >
-                      <input 
-                        type="file" 
-                        id="manual-image-uploader" 
-                        multiple 
-                        accept="image/*" 
-                        className="hidden" 
-                        onChange={(e) => handleImageFileUpload(e.target.files)}
-                      />
-                      <Upload size={20} className="text-[#6B2D0E] mb-2" />
-                      <p className="text-xs font-semibold text-[#6B2D0E]">
-                        {isUploadingImage ? "Processing image file..." : "Drag & Drop Image or Click to Browse"}
-                      </p>
-                      <span className="text-[9px] text-stone-400 mt-1 uppercase tracking-wider">JPG, PNG, WEBP (Auto-compressed for local storage)</span>
-                    </div>
-
-                    {/* RECENT LOCAL STORAGE VAULT ITEMS */}
-                    {localSavedImages.length > 0 && (
-                      <div className="w-full mt-3 pt-3 border-t border-stone-100">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-[9px] uppercase font-black tracking-widest text-[#6B2D0E]">Recently Uploaded (Click to Toggle Select)</span>
-                          <button 
-                            type="button"
-                            onClick={clearAllLocalImages} 
-                            className="text-[9px] text-red-600 hover:text-red-800 font-bold hover:underline"
-                          >
-                            Clear Gallery
-                          </button>
-                        </div>
-                        
-                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-36 overflow-y-auto p-1 bg-[#F5EFE6]/30 rounded-lg">
-                          {localSavedImages.map((img) => {
-                            const isSelected = prodImages.includes(img.dataUrl);
-                            return (
-                              <div 
-                                key={img.id} 
-                                className={`relative group aspect-square rounded overflow-hidden border cursor-pointer transition-all hover:scale-105 ${
-                                  isSelected ? "border-amber-600 ring-2 ring-amber-500" : "border-stone-200"
-                                }`}
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  if (isSelected) {
-                                    // Remove from prodImages
-                                    setProdImages(prev => prev.filter(p => p !== img.dataUrl));
-                                  } else {
-                                    // Add to prodImages
-                                    setProdImages(prev => [...prev, img.dataUrl]);
-                                  }
-                                }}
-                              >
-                                <img src={img.dataUrl} alt={img.name} className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                  <button
-                                    type="button"
-                                    onClick={(e) => deleteRecentLocalImage(img.id, e)}
-                                    className="p-1 bg-red-600 hover:bg-red-800 rounded-full text-white cursor-pointer duration-150 transition-colors"
-                                    title="Delete from local uploads history"
-                                  >
-                                    <Trash2 size={10} />
-                                  </button>
-                                </div>
-                                {isSelected && (
-                                  <div className="absolute top-0.5 right-0.5 bg-amber-600 text-white rounded-full p-0.5">
-                                    <Check size={8} className="stroke-[3]" />
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1.5 col-span-1 sm:col-span-2">
-                  <label className="text-[10px] font-bold uppercase text-stone-400">Vedic SEO Tags (comma separated)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. pure, traditional cow घी, organic"
-                    value={prodTags}
-                    onChange={(e) => setProdTags(e.target.value)}
-                    className="bg-stone-50 border border-[#D4B896]/70 p-2.5 rounded focus:outline-none"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5 col-span-1 sm:col-span-2">
-                  <label className="text-[10px] font-bold uppercase text-stone-400">Product Detailed Description *</label>
-                  <textarea
-                    required
-                    rows={4}
-                    placeholder="Describe traditional ingredients, benefits of handchurned Vedic processing..."
-                    value={prodDesc}
-                    onChange={(e) => setProdDesc(e.target.value)}
-                    className="bg-stone-50 border border-[#D4B896]/70 p-2.5 rounded focus:outline-none leading-relaxed"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full bg-[#6B2D0E] hover:bg-[#E8820C] text-white font-bold py-3.5 rounded-full shadow transition-all duration-150 uppercase tracking-wider text-xs cursor-pointer mt-4"
-              >
-                Save Catalog Records
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* OFFERS / COUPON DRAWER MODAL */}
       {showCouponModal && (

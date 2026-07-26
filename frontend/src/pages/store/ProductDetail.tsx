@@ -1,18 +1,37 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Product } from '../../types';
 import { useCart } from '../../context/CartContext';
 import { ShoppingCart, ArrowLeft, ShieldCheck, Heart, Leaf, HelpCircle, Check, Loader2 } from 'lucide-react';
 
 interface ProductDetailProps {
   product: Product;
+  allProducts?: Product[];
   setView: (v: string) => void;
+  setSelectedProduct?: React.Dispatch<React.SetStateAction<Product | null>>;
 }
 
-export default function ProductDetail({ product, setView }: ProductDetailProps) {
+export default function ProductDetail({ product, allProducts = [], setView, setSelectedProduct }: ProductDetailProps) {
   const { addToCart } = useCart();
   const [qty, setQty] = useState(1);
   const [btnState, setBtnState] = useState<'idle' | 'adding' | 'added'>('idle');
   const isProcessing = useRef(false);
+
+  // Reset quantity/state whenever a different product is opened
+  useEffect(() => {
+    setQty(1);
+    setBtnState('idle');
+    isProcessing.current = false;
+  }, [product.id]);
+
+  const relatedProducts = allProducts
+    .filter((p) => p.id !== product.id && p.category === product.category && p.isActive !== false)
+    .slice(0, 4);
+
+  const openRelated = (p: Product) => {
+    if (setSelectedProduct) setSelectedProduct(p);
+    setView('detail');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const finalPrice = product.discountPrice ?? product.price;
   const hasDiscount = !!product.discountPrice;
@@ -221,6 +240,33 @@ export default function ProductDetail({ product, setView }: ProductDetailProps) 
           </div>
 
         </div>
+
+        {/* RELATED PRODUCTS */}
+        {relatedProducts.length > 0 && (
+          <div className="mt-10">
+            <h2 className="font-serif text-xl font-bold text-[#6B2D0E] mb-4">You May Also Like</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {relatedProducts.map((rp) => {
+                const rpPrice = rp.discountPrice ?? rp.price;
+                return (
+                  <div
+                    key={rp.id}
+                    onClick={() => openRelated(rp)}
+                    className="bg-white rounded-xl border border-[#D4B896]/40 overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                  >
+                    <div className="aspect-square bg-stone-50">
+                      <img src={rp.images?.[0] || '/logo.png'} alt={rp.name} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="p-2.5">
+                      <p className="text-[11px] font-bold text-[#2C1810] leading-snug line-clamp-2 min-h-[2.2em]">{rp.name}</p>
+                      <p className="text-xs font-black text-[#6B2D0E] mt-1">₹{rpPrice}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

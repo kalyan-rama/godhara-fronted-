@@ -1,7 +1,23 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Product } from '../../types';
 import { useCart } from '../../context/CartContext';
-import { Search, ShoppingCart, SlidersHorizontal, ChevronLeft, ChevronRight, X, PackageSearch } from 'lucide-react';
+import API_URL from '../../api';
+import {
+  Wallet,
+  Award,
+  CheckCircle,
+  Truck,
+  ChevronLeft,
+  ChevronRight,
+  ShoppingCart,
+  Plus,
+  Check,
+  SlidersHorizontal,
+  Search,
+  X,
+  PackageSearch,
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface HomeProps {
   products: Product[];
@@ -17,6 +33,61 @@ type SortOption = 'featured' | 'price-asc' | 'price-desc' | 'name-asc';
 
 const PAGE_SIZE = 12;
 
+const HERO_SLIDES = [
+  {
+    image: 'https://res.cloudinary.com/dndugbffx/image/upload/v1782876555/godhara_products/o4bevabcgdcks5xf7bm5.jpg',
+    tagline: 'Panchagavya Dhoop Sticks',
+    description: 'Made from desi cow dung & natural herbal ingredients.',
+  },
+  {
+    image: 'https://res.cloudinary.com/dndugbffx/image/upload/v1780725533/WhatsApp_Image_2026-05-31_at_11.14.01_AM_iuxeid.jpg',
+    tagline: 'Herbal Bath Powder',
+    description:
+      'Made from a powerful blend of Multani Mitti, A2 Milk, Reetha, Nagarmotha, Sona Geru, Kapoor, Coconut Oil, Haldi, and Neem.',
+  },
+  {
+    image: 'https://res.cloudinary.com/dndugbffx/image/upload/v1780724608/godhara_products/ljxmre0sq9nua1xecamf.jpg',
+    tagline: 'Amruthadhara',
+    description:
+      'Godhara Amruthadhara is a natural herbal formulation inspired by Panchagavya traditions, used for wellness and spiritual practices.',
+  },
+];
+
+// ── Skeleton Loaders ─────────────────────────────────────────────────────
+function ProductSkeleton() {
+  return (
+    <div className="bg-white border border-[#D4B896]/55 rounded-lg overflow-hidden flex flex-col animate-pulse">
+      <div className="aspect-square bg-stone-200" />
+      <div className="p-2.5 sm:p-4 flex flex-col gap-2">
+        <div className="h-2.5 bg-stone-200 rounded w-1/3" />
+        <div className="h-3.5 bg-stone-200 rounded w-4/5" />
+        <div className="h-3 bg-stone-100 rounded w-2/3" />
+        <div className="mt-2 pt-2 border-t border-stone-100 flex items-center justify-between">
+          <div className="h-4 bg-stone-200 rounded w-1/4" />
+          <div className="h-7 w-7 rounded-full bg-stone-200" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FeaturedSkeleton() {
+  return (
+    <div className="min-w-[280px] sm:min-w-[320px] bg-white border border-[#D4B896]/70 rounded-lg overflow-hidden flex flex-col animate-pulse">
+      <div className="aspect-square bg-stone-200" />
+      <div className="p-5 flex flex-col gap-3">
+        <div className="h-2.5 bg-stone-200 rounded w-1/4" />
+        <div className="h-4 bg-stone-200 rounded w-3/4" />
+        <div className="h-3 bg-stone-100 rounded w-full" />
+        <div className="mt-3 pt-3 border-t border-stone-100 flex items-center justify-between">
+          <div className="h-5 bg-stone-200 rounded w-1/4" />
+          <div className="h-8 bg-stone-200 rounded-full w-24" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Home({
   products,
   categories,
@@ -28,11 +99,51 @@ export default function Home({
 }: HomeProps) {
   const { addToCart } = useCart();
 
+  // ── Hero slider state ───────────────────────────────────────────────────
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  // ── Filtering / sorting / pagination state (business logic) ────────────
   const [search, setSearch] = useState(initialSearchQuery || '');
   const [category, setCategory] = useState(initialCategory || 'All');
   const [sort, setSort] = useState<SortOption>('featured');
   const [page, setPage] = useState(1);
   const [addedId, setAddedId] = useState<string | null>(null);
+
+  // ── Founder section content (dynamic, admin-configurable) ──────────────
+  const [founderInfo, setFounderInfo] = useState({
+    founderName: 'Ketan S., Founder of Godhara',
+    founderQuote:
+      'Godhara was founded with a simple yet powerful vision — to bring back the purity, wisdom, and sustainability of our Indian traditions. Inspired by our cultural roots and deep respect for nature, the founders work closely with local artisans and Gaushalas to create natural, eco-friendly products made using time-honored practices.',
+    founderImageUrl: 'https://res.cloudinary.com/dndugbffx/image/upload/v1780725088/founder_yhmvml.jpg',
+  });
+
+  useEffect(() => {
+    const localImg = localStorage.getItem('gdh_founder_image');
+    const localName = localStorage.getItem('gdh_founder_name');
+    const localQuote = localStorage.getItem('gdh_founder_quote');
+    if (localImg || localName || localQuote) {
+      setFounderInfo((prev) => ({
+        founderImageUrl: localImg || prev.founderImageUrl,
+        founderName: localName || prev.founderName,
+        founderQuote: localQuote || prev.founderQuote,
+      }));
+    }
+
+    fetch(`${API_URL}/api/settings`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data) {
+          setFounderInfo({
+            founderImageUrl: data.founderImageUrl || 'https://res.cloudinary.com/dndugbffx/image/upload/v1780725088/founder_yhmvml.jpg',
+            founderName: data.founderName || ' ., Founder of Godhara',
+            founderQuote:
+              data.founderQuote ||
+              'Godhara was founded with a simple yet powerful vision — to bring back the purity, wisdom, and sustainability of our Indian traditions. Inspired by our cultural roots and deep respect for nature, we work closely with local artisans and Gaushalas to create natural, eco-friendly products made using time-honored practices.',
+          });
+        }
+      })
+      .catch((err) => console.error('Failed fetching founder settings:', err));
+  }, []);
 
   // Sync filters when navigated in from the navbar search / footer category links
   useEffect(() => {
@@ -46,6 +157,17 @@ export default function Home({
   useEffect(() => {
     setPage(1);
   }, [search, category, sort]);
+
+  // Autoplay hero slider loop
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+    }, 5500);
+    return () => clearInterval(timer);
+  }, []);
+
+  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
 
   const filtered = useMemo(() => {
     let list = products.filter((p) => p.isActive !== false);
@@ -86,6 +208,11 @@ export default function Home({
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  const featuredList = useMemo(
+    () => products.filter((p) => p.isActive !== false && p.isFeatured),
+    [products]
+  );
+
   const openProduct = (p: Product) => {
     setSelectedProduct(p);
     setView('detail');
@@ -100,166 +227,401 @@ export default function Home({
   };
 
   return (
-    <div className="bg-[#F5EFE6] text-[#2C1810] font-sans min-h-screen pb-16">
-      {/* Hero */}
-      <div className="bg-gradient-to-b from-[#6B2D0E] to-[#52220A] text-white py-10 sm:py-14 px-4 text-center">
-        <span className="text-xs font-bold text-[#F5CBA7] uppercase tracking-widest bg-white/10 px-3.5 py-1.5 rounded-full inline-block mb-3">
-          Traditional Panchagavya & Gaushala Products
-        </span>
-        <h1 className="text-3xl sm:text-4xl font-serif font-bold tracking-tight">The Godhara Shop</h1>
-        <p className="text-white/70 text-sm mt-2 max-w-lg mx-auto">
-          Pure, traditional, and handcrafted essentials for your home, health, and daily rituals.
-        </p>
+    <div className="bg-[#F5EFE6] text-[#2C1810] font-sans min-h-screen">
+      {/* SECTION 1: HERO BANNER SLIDER */}
+      <div className="relative h-[480px] sm:h-[520px] lg:h-[580px] w-full overflow-hidden bg-stone-900 border-b-4 border-[#6B2D0E]">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentSlide}
+            initial={{ opacity: 0, scale: 1.03 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.8 }}
+            className="absolute inset-0 w-full h-full"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent z-10" />
+            <img
+              src={HERO_SLIDES[currentSlide].image}
+              alt="Godhara Traditional Pure Products"
+              className="w-full h-full object-cover select-none pointer-events-none"
+            />
+
+            <div className="absolute inset-y-0 left-0 z-20 flex items-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="max-w-2xl text-white">
+                <span className="inline-block bg-[#E8820C] text-xs font-bold font-sans uppercase tracking-widest px-3 py-1.5 rounded-sm mb-4">
+                  Tradition & Gaushala Sourced
+                </span>
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold tracking-normal leading-tight drop-shadow-md">
+                  {HERO_SLIDES[currentSlide].tagline}
+                </h1>
+                <p className="text-sm sm:text-base text-stone-200 mt-4 leading-relaxed max-w-lg drop-shadow">
+                  {HERO_SLIDES[currentSlide].description}
+                </p>
+                <button
+                  onClick={() => {
+                    document.getElementById('all-products-section-anchor')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="bg-white text-[#6B2D0E] hover:bg-[#E8820C] hover:text-white transition-all duration-200 text-sm font-bold tracking-wider py-3.5 px-8 rounded-full shadow-lg mt-8 inline-block select-none cursor-pointer"
+                >
+                  Shop Pure Products Now
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+
+        <button
+          onClick={prevSlide}
+          className="absolute left-4 top-1/2 -translate-y-1/2 z-30 h-10 w-10 rounded-full bg-black/30 hover:bg-[#6B2D0E]/80 text-white flex items-center justify-center transition-colors border border-white/10"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <button
+          onClick={nextSlide}
+          className="absolute right-4 top-1/2 -translate-y-1/2 z-30 h-10 w-10 rounded-full bg-black/30 hover:bg-[#6B2D0E]/80 text-white flex items-center justify-center transition-colors border border-white/10"
+        >
+          <ChevronRight size={20} />
+        </button>
+
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-35 flex items-center gap-2.5">
+          {HERO_SLIDES.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentSlide(i)}
+              className={`h-2.5 rounded-full transition-all duration-200 ${
+                currentSlide === i ? 'bg-[#E8820C] w-7' : 'bg-white/40 w-2.5'
+              }`}
+            />
+          ))}
+        </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 -mt-6">
-        {/* Filter bar */}
-        <div className="bg-white rounded-2xl border border-[#D4B896]/50 shadow-sm p-4 sm:p-5 flex flex-col gap-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
+      {/* SECTION 2: TRUST BADGES BAR */}
+      <div className="bg-[#F5EFE6] border-b border-[#D4B896] py-12 select-none">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="flex flex-col items-center text-center group">
+              <div className="h-16 w-16 rounded-full bg-white border-2 border-[#D4B896] flex items-center justify-center text-stone-800 shadow-sm group-hover:bg-[#6B2D0E] group-hover:border-[#6B2D0E] group-hover:text-white transition-all duration-200 mb-3.5">
+                <Wallet size={26} strokeWidth={1.8} />
+              </div>
+              <h4 className="text-sm font-semibold text-[#2C1810] tracking-wide">Secure Payments</h4>
+              <p className="text-xs text-stone-500 mt-1">100% Protected Checkouts</p>
+            </div>
+
+            <div className="flex flex-col items-center text-center group">
+              <div className="h-16 w-16 rounded-full bg-white border-2 border-[#D4B896] flex items-center justify-center text-stone-800 shadow-sm group-hover:bg-[#6B2D0E] group-hover:border-[#6B2D0E] group-hover:text-white transition-all duration-200 mb-3.5">
+                <Award size={26} strokeWidth={1.8} />
+              </div>
+              <h4 className="text-sm font-semibold text-[#2C1810] tracking-wide">Assured Quality</h4>
+              <p className="text-xs text-stone-500 mt-1">Traditional Vedic Checking</p>
+            </div>
+
+            <div className="flex flex-col items-center text-center group">
+              <div className="h-16 w-16 rounded-full bg-white border-2 border-[#D4B896] flex items-center justify-center text-stone-800 shadow-sm group-hover:bg-[#6B2D0E] group-hover:border-[#6B2D0E] group-hover:text-white transition-all duration-200 mb-3.5">
+                <CheckCircle size={26} strokeWidth={1.8} />
+              </div>
+              <h4 className="text-sm font-semibold text-[#2C1810] tracking-wide">Made In India</h4>
+              <p className="text-xs text-stone-500 mt-1">Empowering Local Gaushalas</p>
+            </div>
+
+            <div className="flex flex-col items-center text-center group">
+              <div className="h-16 w-16 rounded-full bg-white border-2 border-[#D4B896] flex items-center justify-center text-stone-800 shadow-sm group-hover:bg-[#6B2D0E] group-hover:border-[#6B2D0E] group-hover:text-white transition-all duration-200 mb-3.5">
+                <Truck size={26} strokeWidth={1.8} />
+              </div>
+              <h4 className="text-sm font-semibold text-[#2C1810] tracking-wide">Timely Delivery</h4>
+              <p className="text-xs text-stone-500 mt-1">Dispatched within 24 Hours</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* SECTION 3: FEATURED PRODUCTS */}
+      {(productsLoading || featuredList.length > 0) && (
+        <section className="py-16 bg-white/40 border-b border-[#D4B896] select-none">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-10">
+              <span className="text-xs font-bold text-[#E8820C] uppercase tracking-widest">Our Top Recommendation</span>
+              <h2 className="text-3xl sm:text-4xl font-serif font-bold text-[#6B2D0E] mt-1">Featured Products</h2>
+              <p className="text-stone-500 text-sm mt-1">
+                Check out our newest addition to the store! Handmade with love and devotion.
+              </p>
+            </div>
+
+            <div className="flex gap-6 overflow-x-auto pb-6 scrollbar-thin scrollbar-thumb-amber-700 md:grid md:grid-cols-2 lg:grid-cols-3 md:overflow-x-visible md:pb-0">
+              {productsLoading
+                ? Array.from({ length: 3 }).map((_, i) => <FeaturedSkeleton key={i} />)
+                : featuredList.map((product) => {
+                    const finalPrice = product.discountPrice ?? product.price;
+                    const hasDiscount = !!product.discountPrice;
+
+                    return (
+                      <div
+                        key={product.id}
+                        onClick={() => openProduct(product)}
+                        className="min-w-[280px] sm:min-w-[320px] bg-white border border-[#D4B896]/70 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer flex flex-col group justify-between"
+                      >
+                        <div className="relative aspect-square overflow-hidden bg-stone-100">
+                          <img
+                            src={product.images?.[0] || '/logo.png'}
+                            alt={product.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none"
+                          />
+                          {hasDiscount && (
+                            <span className="absolute top-3 left-3 bg-[#E8820C] text-white text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded">
+                              Save ₹{Math.round(product.price - product.discountPrice!)}
+                            </span>
+                          )}
+                          {product.stock === 0 && (
+                            <span className="absolute inset-0 bg-black/60 text-white font-bold flex items-center justify-center text-sm uppercase tracking-wider">
+                              Sold Out
+                            </span>
+                          )}
+                          {product.stock > 0 && product.stock < 10 && (
+                            <span className="absolute bottom-3 right-3 bg-red-600 text-white text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded">
+                              Only {product.stock} Left!
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="p-5 flex-1 flex flex-col justify-between">
+                          <div>
+                            <span className="text-[10px] text-[#E8820C] uppercase tracking-widest font-bold">
+                              {product.category}
+                            </span>
+                            <h3 className="font-serif text-base font-bold text-[#2C1810] hover:text-[#6B2D0E] transition-colors mt-0.5 min-h-[48px] line-clamp-2 leading-tight">
+                              {product.name}
+                            </h3>
+                            {product.packageSize && (
+                              <p className="text-[10px] text-stone-400 font-sans tracking-tight mt-0.5">
+                                <span className="uppercase font-bold text-stone-400">Package Size:</span>{' '}
+                                {product.packageSize}
+                              </p>
+                            )}
+                            <p className="text-xs text-stone-500 mt-1 line-clamp-2">{product.description}</p>
+                          </div>
+
+                          <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between">
+                            <div className="flex flex-col">
+                              {hasDiscount ? (
+                                <div className="flex items-baseline gap-1.5">
+                                  <span className="text-lg font-bold text-[#6B2D0E]">₹{finalPrice}</span>
+                                  <span className="text-xs text-stone-400 line-through">₹{product.price}</span>
+                                </div>
+                              ) : (
+                                <span className="text-lg font-bold text-[#6B2D0E]">₹{product.price}</span>
+                              )}
+                            </div>
+
+                            {product.stock > 0 ? (
+                              <button
+                                onClick={(e) => quickAdd(e, product)}
+                                disabled={addedId === product.id}
+                                className="bg-[#6B2D0E] hover:bg-[#E8820C] disabled:bg-green-700 text-white text-xs font-bold py-2 px-3.5 rounded-full flex items-center gap-1.5 shadow transition-all duration-150 cursor-pointer"
+                              >
+                                {addedId === product.id ? (
+                                  <>
+                                    <Check size={13} strokeWidth={2.5} />
+                                    Added
+                                  </>
+                                ) : (
+                                  <>
+                                    <ShoppingCart size={13} />
+                                    Add to Cart
+                                  </>
+                                )}
+                              </button>
+                            ) : (
+                              <span className="text-xs text-red-500 font-bold">Out of Stock</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* SECTION 4: ALL PRODUCTS GRID & CONTROLS */}
+      <section id="all-products-section-anchor" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="border-b border-[#D4B896] pb-6 mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+          <div>
+            <h2 className="text-3xl font-serif font-bold text-[#6B2D0E]">All Pure Offerings</h2>
+            <p className="text-stone-500 text-sm mt-1">
+              {productsLoading
+                ? 'Loading products…'
+                : `Browse our complete spectrum of Indian tradition products — ${filtered.length} product${
+                    filtered.length === 1 ? '' : 's'
+                  } found`}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative">
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search products..."
-                className="w-full bg-stone-50 border border-[#D4B896]/60 rounded-full py-2.5 pl-10 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8820C]/40"
+                className="bg-white border border-[#D4B896] text-[#2C1810] text-xs font-semibold py-1.5 pl-8 pr-7 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#E8820C] w-40 sm:w-52"
               />
               {search && (
                 <button
                   onClick={() => setSearch('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-[#6B2D0E] cursor-pointer"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-[#6B2D0E] cursor-pointer"
                 >
-                  <X size={14} />
+                  <X size={13} />
                 </button>
               )}
             </div>
 
-            <div className="flex items-center gap-2 bg-stone-50 border border-[#D4B896]/60 rounded-full px-3.5">
-              <SlidersHorizontal size={14} className="text-stone-400 shrink-0" />
-              <select
-                value={sort}
-                onChange={(e) => setSort(e.target.value as SortOption)}
-                className="bg-transparent py-2.5 text-sm focus:outline-none cursor-pointer"
-              >
-                <option value="featured">Featured</option>
-                <option value="price-asc">Price: Low to High</option>
-                <option value="price-desc">Price: High to Low</option>
-                <option value="name-asc">Name: A to Z</option>
-              </select>
+            <div className="flex items-center gap-1 text-xs text-stone-500 font-bold uppercase tracking-wider">
+              <SlidersHorizontal size={14} className="text-[#6B2D0E]" />
+              Filters:
             </div>
-          </div>
 
-          {/* Category pills */}
-          <div className="flex flex-wrap gap-2">
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortOption)}
+              className="bg-white border border-[#D4B896] text-[#2C1810] text-xs font-semibold py-1.5 px-3 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#E8820C] cursor-pointer"
+            >
+              <option value="featured">Sort: Featured</option>
+              <option value="price-asc">Price: Low to High</option>
+              <option value="price-desc">Price: High to Low</option>
+              <option value="name-asc">Name: A to Z</option>
+            </select>
+          </div>
+        </div>
+
+        <div
+          id="categories-section-anchor"
+          className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 scrollbar-none"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
+          <button
+            onClick={() => setCategory('All')}
+            className={`px-4 py-2 text-xs font-bold rounded-full border transition-all duration-150 shrink-0 cursor-pointer ${
+              category === 'All'
+                ? 'bg-[#6B2D0E] border-[#6B2D0E] text-white shadow-sm'
+                : 'bg-white border-[#D4B896] hover:bg-amber-50 text-[#2C1810]'
+            }`}
+          >
+            All Products
+          </button>
+          {categories.map((c) => (
             <button
-              onClick={() => setCategory('All')}
-              className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide transition-all cursor-pointer ${
-                category === 'All'
-                  ? 'bg-[#6B2D0E] text-white shadow'
-                  : 'bg-stone-50 text-stone-600 border border-[#D4B896]/50 hover:border-[#E8820C]'
+              key={c}
+              onClick={() => setCategory(c)}
+              className={`px-4 py-2 text-xs font-bold rounded-full border transition-all duration-150 shrink-0 cursor-pointer ${
+                category === c
+                  ? 'bg-[#6B2D0E] border-[#6B2D0E] text-white shadow-sm'
+                  : 'bg-white border-[#D4B896] hover:bg-amber-50 text-[#2C1810]'
               }`}
             >
-              All
+              {c}
             </button>
-            {categories.map((c) => (
-              <button
-                key={c}
-                onClick={() => setCategory(c)}
-                className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide transition-all cursor-pointer ${
-                  category === c
-                    ? 'bg-[#6B2D0E] text-white shadow'
-                    : 'bg-stone-50 text-stone-600 border border-[#D4B896]/50 hover:border-[#E8820C]'
-                }`}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
+          ))}
         </div>
 
-        {/* Results count */}
-        <div className="flex items-center justify-between mt-6 mb-3 px-1">
-          <p className="text-xs text-stone-500 font-semibold uppercase tracking-wider">
-            {productsLoading ? 'Loading products…' : `${filtered.length} product${filtered.length === 1 ? '' : 's'} found`}
-          </p>
-        </div>
-
-        {/* Product grid */}
         {productsLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-2xl border border-[#D4B896]/30 overflow-hidden animate-pulse">
-                <div className="aspect-square bg-stone-100" />
-                <div className="p-3.5 space-y-2">
-                  <div className="h-3 bg-stone-100 rounded w-3/4" />
-                  <div className="h-3 bg-stone-100 rounded w-1/2" />
-                </div>
-              </div>
+              <ProductSkeleton key={i} />
             ))}
           </div>
         ) : pageItems.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-dashed border-[#D4B896] p-14 text-center">
+          <div className="text-center py-20 bg-white/50 rounded-xl border border-dashed border-[#D4B896]">
             <PackageSearch className="mx-auto text-stone-300 mb-3" size={40} />
-            <p className="text-stone-500 font-medium text-sm">No products match your search or filters.</p>
+            <p className="text-stone-400 font-serif text-lg">No pure creations found matching these criteria</p>
+            <button
+              onClick={() => {
+                setCategory('All');
+                setSearch('');
+              }}
+              className="mt-4 inline-block bg-[#E8820C] text-white text-xs font-bold px-4 py-2 rounded-full hover:bg-[#6B2D0E] cursor-pointer"
+            >
+              Reset Filters
+            </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-            {pageItems.map((p) => {
-              const finalPrice = p.discountPrice ?? p.price;
-              const hasDiscount = !!p.discountPrice && p.discountPrice < p.price;
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+            {pageItems.map((product) => {
+              const finalPrice = product.discountPrice ?? product.price;
+              const hasDiscount = !!product.discountPrice && product.discountPrice < product.price;
+
               return (
                 <div
-                  key={p.id}
-                  onClick={() => openProduct(p)}
-                  className="bg-white rounded-2xl border border-[#D4B896]/40 overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col group"
+                  key={product.id}
+                  onClick={() => openProduct(product)}
+                  className="bg-white border border-[#D4B896]/55 rounded-lg overflow-hidden hover:shadow-md transition-all duration-150 cursor-pointer flex flex-col justify-between group"
                 >
-                  <div className="aspect-square bg-stone-50 relative overflow-hidden">
+                  <div className="relative aspect-square bg-stone-50 overflow-hidden">
                     <img
-                      src={p.images?.[0] || '/logo.png'}
-                      alt={p.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      src={product.images?.[0] || '/logo.png'}
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none"
                     />
                     {hasDiscount && (
-                      <span className="absolute top-2 left-2 bg-[#E8820C] text-white text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded shadow-sm">
-                        Save ₹{Math.round(p.price - p.discountPrice!)}
+                      <span className="absolute top-2 left-2 bg-[#E8820C] text-white text-[8px] sm:text-[9px] font-black uppercase tracking-widest px-1.5 sm:px-2 py-0.5 rounded shadow-sm">
+                        Save ₹{Math.round(product.price - product.discountPrice!)}
                       </span>
                     )}
-                    {p.stock <= 0 && (
-                      <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
-                        <span className="text-red-700 font-black text-[10px] uppercase bg-white px-2.5 py-1 rounded border border-red-200">
-                          Sold Out
-                        </span>
-                      </div>
+                    {product.stock === 0 && (
+                      <span className="absolute inset-0 bg-stone-900/60 text-white font-bold flex items-center justify-center text-xs uppercase tracking-wider">
+                        Sold Out
+                      </span>
+                    )}
+                    {product.stock > 0 && product.stock < 10 && (
+                      <span className="absolute bottom-2 right-2 bg-red-600 text-white text-[7px] sm:text-[8px] font-bold uppercase tracking-wider px-1.5 sm:px-2 py-0.5 rounded shadow-sm">
+                        Low Stock: {product.stock}
+                      </span>
                     )}
                   </div>
 
-                  <div className="p-3.5 flex flex-col gap-1 flex-1">
-                    <span className="text-[9px] font-bold text-[#E8820C] uppercase tracking-widest">{p.category}</span>
-                    <h3 className="text-xs sm:text-sm font-bold text-[#2C1810] leading-snug line-clamp-2 min-h-[2.2em]">
-                      {p.name}
-                    </h3>
-                    {p.packageSize && (
-                      <span className="text-[10px] text-stone-400">{p.packageSize}</span>
-                    )}
+                  <div className="p-2.5 sm:p-4 flex-1 flex flex-col justify-between">
+                    <div>
+                      <span className="text-[8px] sm:text-[9px] text-stone-400 uppercase tracking-wider font-bold">
+                        {product.category}
+                      </span>
+                      <h3 className="font-serif text-xs sm:text-sm font-semibold text-[#2C1810] leading-tight hover:text-[#E8820C] mt-0.5 min-h-[32px] sm:min-h-[40px] line-clamp-2">
+                        {product.name}
+                      </h3>
+                      {product.packageSize && (
+                        <p className="text-[7px] sm:text-[8px] text-stone-400 mt-0.5">
+                          <span className="uppercase font-bold text-stone-400">Package Size:</span> {product.packageSize}
+                        </p>
+                      )}
+                    </div>
 
-                    <div className="mt-auto pt-2 flex items-center justify-between gap-2">
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="text-sm font-black text-[#6B2D0E]">₹{finalPrice}</span>
-                        {hasDiscount && (
-                          <span className="text-[10px] text-stone-400 line-through">₹{p.price}</span>
+                    <div className="mt-2 sm:mt-3 pt-2 border-t border-stone-100 flex items-center justify-between">
+                      <div className="flex flex-col">
+                        {hasDiscount ? (
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-sm sm:text-base font-bold text-[#6B2D0E]">₹{finalPrice}</span>
+                            <span className="text-[9px] sm:text-[10px] text-stone-400 line-through">₹{product.price}</span>
+                          </div>
+                        ) : (
+                          <span className="text-sm sm:text-base font-bold text-[#6B2D0E]">₹{product.price}</span>
                         )}
                       </div>
-                      <button
-                        onClick={(e) => quickAdd(e, p)}
-                        disabled={p.stock <= 0}
-                        className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
-                          addedId === p.id ? 'bg-green-600 text-white' : 'bg-[#6B2D0E] hover:bg-[#E8820C] text-white'
-                        }`}
-                        aria-label={`Add ${p.name} to cart`}
-                      >
-                        <ShoppingCart size={14} />
-                      </button>
+
+                      {product.stock > 0 ? (
+                        <button
+                          onClick={(e) => quickAdd(e, product)}
+                          disabled={addedId === product.id}
+                          className="h-7 w-7 sm:h-8 sm:w-8 bg-[#6B2D0E] hover:bg-[#E8820C] text-white rounded-full flex items-center justify-center shadow-sm select-none transition-colors cursor-pointer shrink-0 disabled:opacity-70"
+                        >
+                          {addedId === product.id ? (
+                            <Check size={12} className="text-green-400 animate-bounce" />
+                          ) : (
+                            <Plus size={12} />
+                          )}
+                        </button>
+                      ) : (
+                        <span className="text-[8px] sm:text-[10px] text-red-500 font-bold uppercase">No Stock</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -268,13 +630,12 @@ export default function Home({
           </div>
         )}
 
-        {/* Pagination */}
         {!productsLoading && totalPages > 1 && (
           <div className="flex items-center justify-center gap-3 mt-10">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="h-9 w-9 rounded-full bg-white border border-[#D4B896]/60 flex items-center justify-center text-[#6B2D0E] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer hover:border-[#E8820C]"
+              className="h-9 w-9 rounded-full bg-white border border-[#D4B896] flex items-center justify-center text-[#6B2D0E] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer hover:border-[#E8820C] hover:bg-amber-50 transition-colors"
             >
               <ChevronLeft size={16} />
             </button>
@@ -284,13 +645,59 @@ export default function Home({
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="h-9 w-9 rounded-full bg-white border border-[#D4B896]/60 flex items-center justify-center text-[#6B2D0E] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer hover:border-[#E8820C]"
+              className="h-9 w-9 rounded-full bg-white border border-[#D4B896] flex items-center justify-center text-[#6B2D0E] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer hover:border-[#E8820C] hover:bg-amber-50 transition-colors"
             >
               <ChevronRight size={16} />
             </button>
           </div>
         )}
-      </div>
+      </section>
+
+      {/* SECTION 5: FROM OUR FOUNDER */}
+      <section className="bg-white border-t border-b border-[#D4B896] select-none">
+        <div className="grid grid-cols-1 md:grid-cols-10">
+          <div className="md:col-span-6 bg-[#F5EFE6] p-8 sm:p-12 lg:p-16 flex flex-col justify-center">
+            <span className="text-xs font-bold text-[#E8820C] uppercase tracking-widest">A Sacred Legacy</span>
+            <h2 className="font-serif font-black text-3xl sm:text-4xl text-[#6B2D0E] mt-1 mb-6 leading-tight">
+              From our Founder
+            </h2>
+            <p className="text-[#2C1810]/95 text-sm sm:text-base leading-relaxed font-sans font-medium space-y-4 max-w-xl">
+              {founderInfo.founderQuote}
+            </p>
+            <div className="mt-8 flex items-center gap-3">
+              <div className="h-0.5 w-12 bg-[#6B2D0E]" />
+              <p className="font-serif font-bold text-sm text-[#6B2D0E]">{founderInfo.founderName}</p>
+            </div>
+          </div>
+
+          <div className="md:col-span-4 max-h-[460px] md:max-h-none overflow-hidden bg-[#E8820C] relative">
+            <img
+              src={founderInfo.founderImageUrl}
+              alt="Godhara Founder Image"
+              className="w-full h-full object-cover filter sepia-[0.1] saturate-[1.1] hover:scale-105 transition-transform duration-700 pointer-events-none"
+              referrerPolicy="no-referrer"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
+          </div>
+        </div>
+      </section>
+
+      {/* FLOATING WHATSAPP BUTTON */}
+      
+        href="https://wa.me/918978038932"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 z-50 bg-[#25D366] hover:bg-[#128C7E] text-white p-3.5 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center animate-bounce cursor-pointer group"
+        title="Talk to us on WhatsApp!"
+        id="gdh-whatsapp-floating-btn"
+      >
+        <svg className="w-7 h-7" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.513 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.73-1.45L0 24zm6.59-4.846c1.6.95 3.1 1.45 4.8 1.45 5.58 0 10.12-4.51 10.13-10.05.004-3.524-1.872-6.521-4.757-8.484a10.023 10.023 0 00-6.757-2.31c-5.58 0-10.12 4.515-10.13 10.051-.001 2.01.52 3.98 1.503 5.71l-1.002 3.655 3.743-.982zM17.447 14.4c-.297-.15-1.758-.868-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.521.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.568-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+        </svg>
+        <span className="absolute right-14 bg-[#2C1810] text-white text-xs font-bold py-1 px-2.5 rounded shadow shadow-stone-800 whitespace-nowrap opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 transition-all origin-right mr-1">
+          Pooja / Gau Seva Help!
+        </span>
+      </a>
     </div>
   );
 }

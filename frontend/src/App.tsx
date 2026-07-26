@@ -155,7 +155,9 @@ function StorefrontApp() {
               return selectedProduct ? (
                 <ProductDetail 
                   product={selectedProduct} 
+                  allProducts={products}
                   setView={setView} 
+                  setSelectedProduct={setSelectedProduct}
                 />
               ) : (
                 <div className="py-20 text-center text-xs">No active product detail found.</div>

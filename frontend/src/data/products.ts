@@ -68,7 +68,7 @@ export const PRODUCTS: StaticProduct[] = [
       'How to Use:\n' +
       'Take a small amount of Dishwash Liquid on a scrubber or sponge, wash the utensils, and rinse thoroughly with clean water.\n\n' +
       'Choose a natural way to keep your utensils clean with Godhara Bio Enzyme Dishwash Liquid.',
-    price: 150.0,
+    price: 120.0,
     stock: 48,
     category: 'Personal Care',
     images: [img('bio-enzyme-dishwash-liquids')],

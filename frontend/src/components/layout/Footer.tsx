@@ -93,8 +93,8 @@ export default function Footer({ setView, setCategory }: FooterProps) {
                 </button>
               </li>
               <li>
-                <button onClick={() => handleCategoryNav('Dairy Products')} className="hover:text-[#E8820C] hover:underline transition-all duration-150">
-                  Dairy / A2 Ghee
+                <button onClick={() => handleCategoryNav('Household Products')} className="hover:text-[#E8820C] hover:underline transition-all duration-150">
+                  Household Products
                 </button>
               </li>
               <li>

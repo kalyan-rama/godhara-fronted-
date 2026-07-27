@@ -70,7 +70,7 @@ export const PRODUCTS: StaticProduct[] = [
       'Choose a natural way to keep your utensils clean with Godhara Bio Enzyme Dishwash Liquid.',
     price: 120.0,
     stock: 48,
-    category: 'Personal Care',
+    category: 'Household Products',
     images: [img('bio-enzyme-dishwash-liquids')],
     imagePublicIds: [],
     isFeatured: true,

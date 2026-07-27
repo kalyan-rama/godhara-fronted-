@@ -55,7 +55,7 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
   // read-only `products` prop below is still used for dashboard stats
   // (low stock alerts) and the CSV export utility only.
   const [searchProduct, setSearchProduct] = useState('');
-  const [categoriesList, setCategoriesList] = useState<string[]>(['Dairy Products', 'Personal Care', 'Spiritual', 'Ayurvedic Remedies']);
+  const [categoriesList, setCategoriesList] = useState<string[]>(['Household Products', 'Personal Care', 'Spiritual', 'Ayurvedic Remedies']);
 
   // Orders Management Filters
   const [searchOrder, setSearchOrder] = useState('');

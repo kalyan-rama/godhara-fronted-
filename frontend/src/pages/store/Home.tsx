@@ -46,7 +46,7 @@ const HERO_SLIDES = [
       'Made from a powerful blend of Multani Mitti, A2 Milk, Reetha, Nagarmotha, Sona Geru, Kapoor, Coconut Oil, Haldi, and Neem.',
   },
   {
-    image: 'https://res.cloudinary.com/dndugbffx/image/upload/v1780724608/godhara_products/ljxmre0sq9nua1xecamf.jpg',
+    image: 'https://res.cloudinary.com/dndugbffx/image/upload/v1785162849/WhatsApp_Image_2026-07-27_at_8.02.45_PM_wl6npp.jpg',
     tagline: 'Amruthadhara',
     description:
       'Godhara Amruthadhara is a natural herbal formulation inspired by Panchagavya traditions, used for wellness and spiritual practices.',

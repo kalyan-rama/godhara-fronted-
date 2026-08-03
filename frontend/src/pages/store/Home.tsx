@@ -31,7 +31,7 @@ interface HomeProps {
 
 type SortOption = 'featured' | 'price-asc' | 'price-desc' | 'name-asc';
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 100;
 
 const HERO_SLIDES = [
   {

@@ -11,6 +11,9 @@ export interface Product {
   imagePublicIds?: string[]; // Cloudinary public IDs for deletion
   isFeatured: boolean;
   isActive: boolean;
+  /** Manual admin-controlled availability override (In Stock / Out of Stock toggle).
+   * Defaults to true. Independent of the numeric `stock` count. */
+  inStock?: boolean;
   /** Customer-facing package size, e.g. "250 ml", "500 g", "12 pcs". Defaults to '' for legacy products. */
   packageSize: string;
   /** @deprecated Legacy physical weight in grams. No longer set via the admin form; kept only as an

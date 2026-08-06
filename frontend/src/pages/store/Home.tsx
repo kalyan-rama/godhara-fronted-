@@ -99,6 +99,10 @@ export default function Home({
 }: HomeProps) {
   const { addToCart } = useCart();
 
+  // A product is unavailable to purchase if the admin has manually flagged it
+  // Out of Stock, OR its numeric stock quantity has hit zero.
+  const isOutOfStock = (p: Product) => p.inStock === false || p.stock === 0;
+
   // ── Hero slider state ───────────────────────────────────────────────────
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -221,6 +225,7 @@ export default function Home({
 
   const quickAdd = (e: React.MouseEvent, p: Product) => {
     e.stopPropagation();
+    if (isOutOfStock(p)) return;
     addToCart(p, 1);
     setAddedId(p.id);
     setTimeout(() => setAddedId((cur) => (cur === p.id ? null : cur)), 1200);
@@ -371,12 +376,12 @@ export default function Home({
                               Save ₹{Math.round(product.price - product.discountPrice!)}
                             </span>
                           )}
-                          {product.stock === 0 && (
+                          {isOutOfStock(product) && (
                             <span className="absolute inset-0 bg-black/60 text-white font-bold flex items-center justify-center text-sm uppercase tracking-wider">
-                              Sold Out
+                              Out of Stock
                             </span>
                           )}
-                          {product.stock > 0 && product.stock < 10 && (
+                          {!isOutOfStock(product) && product.stock < 10 && (
                             <span className="absolute bottom-3 right-3 bg-red-600 text-white text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded">
                               Only {product.stock} Left!
                             </span>
@@ -412,7 +417,7 @@ export default function Home({
                               )}
                             </div>
 
-                            {product.stock > 0 ? (
+                            {!isOutOfStock(product) ? (
                               <button
                                 onClick={(e) => quickAdd(e, product)}
                                 disabled={addedId === product.id}
@@ -568,12 +573,12 @@ export default function Home({
                         Save ₹{Math.round(product.price - product.discountPrice!)}
                       </span>
                     )}
-                    {product.stock === 0 && (
+                    {isOutOfStock(product) && (
                       <span className="absolute inset-0 bg-stone-900/60 text-white font-bold flex items-center justify-center text-xs uppercase tracking-wider">
-                        Sold Out
+                        Out of Stock
                       </span>
                     )}
-                    {product.stock > 0 && product.stock < 10 && (
+                    {!isOutOfStock(product) && product.stock < 10 && (
                       <span className="absolute bottom-2 right-2 bg-red-600 text-white text-[7px] sm:text-[8px] font-bold uppercase tracking-wider px-1.5 sm:px-2 py-0.5 rounded shadow-sm">
                         Low Stock: {product.stock}
                       </span>
@@ -607,7 +612,7 @@ export default function Home({
                         )}
                       </div>
 
-                      {product.stock > 0 ? (
+                      {!isOutOfStock(product) ? (
                         <button
                           onClick={(e) => quickAdd(e, product)}
                           disabled={addedId === product.id}

@@ -36,9 +36,13 @@ export default function ProductDetail({ product, allProducts = [], setView, setS
   const finalPrice = product.discountPrice ?? product.price;
   const hasDiscount = !!product.discountPrice;
 
+  // A product is unavailable to purchase if the admin has manually flagged it
+  // Out of Stock, OR its numeric stock quantity has hit zero.
+  const isOutOfStock = product.inStock === false || product.stock === 0;
+
   const handleAddToCart = async () => {
     // Prevent duplicate clicks
-    if (isProcessing.current || btnState !== 'idle') return;
+    if (isOutOfStock || isProcessing.current || btnState !== 'idle') return;
     isProcessing.current = true;
     setBtnState('adding');
 
@@ -88,6 +92,11 @@ export default function ProductDetail({ product, allProducts = [], setView, setS
                   Save ₹{Math.round(product.price - product.discountPrice!)}
                 </span>
               )}
+              {isOutOfStock && (
+                <span className="absolute top-4 right-4 bg-red-600 text-white text-[11px] font-black uppercase tracking-widest px-3 py-1.5 rounded shadow-sm">
+                  Out of Stock
+                </span>
+              )}
             </div>
             
             <div className="grid grid-cols-3 gap-3">
@@ -134,7 +143,7 @@ export default function ProductDetail({ product, allProducts = [], setView, setS
 
               {/* Stock Status Banner */}
               <div className="flex items-center gap-2 mb-6 text-sm font-medium">
-                {product.stock > 0 ? (
+                {!isOutOfStock ? (
                   <div className="flex items-center gap-1.5 text-green-700">
                     <span className="h-2.5 w-2.5 rounded-full bg-green-500 inline-block" />
                     <span>In Stock: Ready for Dispatch</span>
@@ -180,7 +189,7 @@ export default function ProductDetail({ product, allProducts = [], setView, setS
             </div>
 
             {/* ACTION FOOTER */}
-            {product.stock > 0 ? (
+            {!isOutOfStock ? (
               <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
                 <div className="flex items-center border-2 border-[#D4B896] rounded-full h-11 bg-stone-50 overflow-hidden font-bold shrink-0">
                   <button

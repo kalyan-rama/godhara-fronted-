@@ -45,7 +45,7 @@ interface AdminConsoleProps {
 export default function AdminConsole({ setView, products, refreshProducts }: AdminConsoleProps) {
   const { apiFetch, user } = useAuth();
   
-  const [activeTab, setActiveTab] = useState<'stats' | 'offers' | 'orders' | 'labels' | 'customers' | 'settings'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'offers' | 'orders' | 'inventory' | 'labels' | 'customers' | 'settings'>('stats');
   const [statsData, setStatsData] = useState<DashboardStats | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<CustomerHistory[]>([]);
@@ -249,6 +249,36 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
     document.body.removeChild(link);
     triggerNotification('✓ Exported products table spreadsheet!');
   };
+
+  // --- ACTIONS: INVENTORY (In Stock / Out of Stock toggle) ---
+  const [stockUpdatingId, setStockUpdatingId] = useState<string | null>(null);
+
+  const handleToggleStockStatus = async (product: Product) => {
+    const nextInStock = !(product.inStock !== false); // treat undefined as "in stock"
+    setStockUpdatingId(product.id);
+    try {
+      const res = await apiFetch(`/api/admin/products/${product.id}/stock-status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inStock: nextInStock })
+      });
+      if (res.ok) {
+        refreshProducts();
+        triggerNotification(`✓ ${product.name} marked ${nextInStock ? 'In Stock' : 'Out of Stock'}`);
+      } else {
+        triggerNotification('Failed updating stock status.', 'error');
+      }
+    } catch (err) {
+      triggerNotification('Failed updating stock status.', 'error');
+    } finally {
+      setStockUpdatingId(null);
+    }
+  };
+
+  const inventoryList = products.filter(p =>
+    p.name.toLowerCase().includes(searchProduct.toLowerCase()) ||
+    p.category.toLowerCase().includes(searchProduct.toLowerCase())
+  );
 
   // --- ACTIONS: ORDERS ---
   const handleOrderStatusUpdate = async (orderId: string, status: string) => {
@@ -816,6 +846,16 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
             >
               <Truck size={14} />
               Orders
+            </button>
+
+            <button
+              onClick={() => setActiveTab('inventory')}
+              className={`w-full text-left py-2.5 px-4 rounded-lg flex items-center gap-2.5 transition-all cursor-pointer ${
+                activeTab === 'inventory' ? 'bg-[#E8820C] text-white shadow' : 'hover:bg-[#52220A] text-stone-200'
+              }`}
+            >
+              <Package size={14} />
+              Inventory
             </button>
 
             <button
@@ -1461,6 +1501,103 @@ export default function AdminConsole({ setView, products, refreshProducts }: Adm
                 )}
               </div>
 
+            </div>
+          </div>
+        )}
+
+        {/* TAB: INVENTORY (In Stock / Out of Stock) */}
+        {activeTab === 'inventory' && (
+          <div className="flex flex-col gap-6 font-sans text-xs">
+
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 bg-white p-6 rounded-2xl border border-[#D4B896]/30 shadow-sm">
+              <div>
+                <h1 className="text-2xl font-serif font-black text-[#6B2D0E]">Inventory Availability Ledger</h1>
+                <p className="text-xs text-stone-500 mt-0.5">Mark products In Stock or Out of Stock for the customer storefront</p>
+              </div>
+            </div>
+
+            {/* Search bar */}
+            <div className="bg-white p-4 rounded-xl border border-[#D4B896]/30 shadow-sm">
+              <div className="relative w-full sm:max-w-sm">
+                <input
+                  type="text"
+                  placeholder="Search by product name or category..."
+                  value={searchProduct}
+                  onChange={(e) => setSearchProduct(e.target.value)}
+                  className="w-full bg-stone-50 border border-stone-200 p-2 pl-8 pr-3 text-xs font-semibold text-[#2C1810] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#E8820C]"
+                />
+                <Search size={14} className="absolute left-2.5 top-3 text-stone-400" />
+              </div>
+            </div>
+
+            {/* Products table */}
+            <div className="bg-white rounded-2xl border border-[#D4B896]/30 shadow-sm overflow-hidden text-xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-stone-50 text-stone-500 text-[10px] uppercase font-bold border-b border-stone-100">
+                      <th className="p-4">Product</th>
+                      <th className="p-4">Category</th>
+                      <th className="p-4 text-center">Price</th>
+                      <th className="p-4 text-center">Stock Qty</th>
+                      <th className="p-4 text-center">Availability</th>
+                      <th className="p-4 text-center">Toggle</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-100">
+                    {inventoryList.map((p) => {
+                      const isInStock = p.inStock !== false;
+                      const isUpdating = stockUpdatingId === p.id;
+                      return (
+                        <tr key={p.id} className="hover:bg-stone-50/50">
+                          <td className="p-4">
+                            <div className="flex items-center gap-3">
+                              <img src={p.images?.[0] || '/logo.png'} alt="" className="h-9 w-9 rounded object-cover border border-stone-100" />
+                              <div>
+                                <p className="font-bold text-[#2C1810]">{p.name}</p>
+                                <p className="text-[10px] text-stone-400">{p.packageSize || 'N/A'}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-4 text-stone-500 font-semibold">{p.category}</td>
+                          <td className="p-4 text-center font-bold text-[#2C1810]">₹{p.discountPrice ?? p.price}</td>
+                          <td className="p-4 text-center font-mono text-stone-500">{p.stock}</td>
+                          <td className="p-4 text-center">
+                            <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                              isInStock ? 'bg-green-100 text-green-800' : 'bg-red-50 text-red-600'
+                            }`}>
+                              {isInStock ? 'In Stock' : 'Out of Stock'}
+                            </span>
+                          </td>
+                          <td className="p-4 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleStockStatus(p)}
+                              disabled={isUpdating}
+                              aria-pressed={isInStock}
+                              aria-label={`Toggle stock status for ${p.name}`}
+                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                                isInStock ? 'bg-green-600' : 'bg-stone-300'
+                              }`}
+                            >
+                              <span
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                                  isInStock ? 'translate-x-6' : 'translate-x-1'
+                                }`}
+                              />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {inventoryList.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="p-8 text-center text-stone-400 italic">No products match your search.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
